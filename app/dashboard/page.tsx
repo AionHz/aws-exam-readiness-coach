@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { BADGES, type BadgeId } from "../lib/achievements";
 
 /**
  * IMPORTANT:
@@ -32,9 +33,12 @@ type StoredProgress = {
   byDomain: Record<Domain, { attempts: number; correct: number }>;
   byDifficulty: Record<Difficulty, { attempts: number; correct: number }>;
   history: StoredAttempt[];
+  unlockedBadges: BadgeId[];
 };
 
 const QUIZ_PROGRESS_KEY = "aws-exam-readiness-progress-v1";
+const QUIZ_MISSED_KEY = "aws-exam-readiness-quiz-missed-v1";
+const QUIZ_FLAGGED_KEY = "aws-exam-readiness-quiz-flagged-v1";
 
 // Keep your existing flags page/key intact (if you built it already)
 const LS_FLAGS_KEY = "clfc02_flags_v1";
@@ -63,6 +67,7 @@ function makeEmptyProgress(): StoredProgress {
     byDomain,
     byDifficulty,
     history: [],
+    unlockedBadges: [],
   };
 }
 
@@ -81,6 +86,7 @@ function loadQuizProgress(): StoredProgress {
       byDomain: { ...base.byDomain, ...(parsed.byDomain ?? {}) },
       byDifficulty: { ...base.byDifficulty, ...(parsed.byDifficulty ?? {}) },
       history: Array.isArray(parsed.history) ? parsed.history : [],
+      unlockedBadges: Array.isArray(parsed.unlockedBadges) ? parsed.unlockedBadges : [],
     };
   } catch {
     return makeEmptyProgress();
@@ -122,16 +128,50 @@ export default function DashboardPage() {
   const [progress, setProgress] = useState<StoredProgress>(makeEmptyProgress());
 
   const [flagCount, setFlagCount] = useState(0);
+  const [missedCount, setMissedCount] = useState(0);
+  const [flaggedCount, setFlaggedCount] = useState(0);
 
   useEffect(() => {
     setProgress(loadQuizProgress());
     setFlagCount(loadFlagsCount());
+    try {
+      const rawMissed = window.localStorage.getItem(QUIZ_MISSED_KEY);
+      const parsedMissed = rawMissed ? (JSON.parse(rawMissed) as string[]) : [];
+      setMissedCount(Array.isArray(parsedMissed) ? parsedMissed.length : 0);
+    } catch {
+      setMissedCount(0);
+    }
+    try {
+      const rawFlagged = window.localStorage.getItem(QUIZ_FLAGGED_KEY);
+      const parsedFlagged = rawFlagged ? (JSON.parse(rawFlagged) as string[]) : [];
+      setFlaggedCount(Array.isArray(parsedFlagged) ? parsedFlagged.length : 0);
+    } catch {
+      setFlaggedCount(0);
+    }
     setHydrated(true);
 
     // Note: storage event only fires across tabs/windows, not same-tab updates.
     const onStorage = (e: StorageEvent) => {
       if (e.key === QUIZ_PROGRESS_KEY) setProgress(loadQuizProgress());
       if (e.key === LS_FLAGS_KEY) setFlagCount(loadFlagsCount());
+      if (e.key === QUIZ_MISSED_KEY) {
+        try {
+          const rawMissed = window.localStorage.getItem(QUIZ_MISSED_KEY);
+          const parsedMissed = rawMissed ? (JSON.parse(rawMissed) as string[]) : [];
+          setMissedCount(Array.isArray(parsedMissed) ? parsedMissed.length : 0);
+        } catch {
+          setMissedCount(0);
+        }
+      }
+      if (e.key === QUIZ_FLAGGED_KEY) {
+        try {
+          const rawFlagged = window.localStorage.getItem(QUIZ_FLAGGED_KEY);
+          const parsedFlagged = rawFlagged ? (JSON.parse(rawFlagged) as string[]) : [];
+          setFlaggedCount(Array.isArray(parsedFlagged) ? parsedFlagged.length : 0);
+        } catch {
+          setFlaggedCount(0);
+        }
+      }
     };
     window.addEventListener("storage", onStorage);
 
@@ -139,6 +179,20 @@ export default function DashboardPage() {
     const onFocus = () => {
       setProgress(loadQuizProgress());
       setFlagCount(loadFlagsCount());
+      try {
+        const rawMissed = window.localStorage.getItem(QUIZ_MISSED_KEY);
+        const parsedMissed = rawMissed ? (JSON.parse(rawMissed) as string[]) : [];
+        setMissedCount(Array.isArray(parsedMissed) ? parsedMissed.length : 0);
+      } catch {
+        setMissedCount(0);
+      }
+      try {
+        const rawFlagged = window.localStorage.getItem(QUIZ_FLAGGED_KEY);
+        const parsedFlagged = rawFlagged ? (JSON.parse(rawFlagged) as string[]) : [];
+        setFlaggedCount(Array.isArray(parsedFlagged) ? parsedFlagged.length : 0);
+      } catch {
+        setFlaggedCount(0);
+      }
     };
     window.addEventListener("focus", onFocus);
 
@@ -159,8 +213,29 @@ export default function DashboardPage() {
   const readinessScore = useMemo(() => {
     // same logic you had: accuracy weighted by volume (caps at 50 attempts)
     const attemptsFactor = Math.min(attemptsTotal / 50, 1);
-    return Math.round(accuracyPct * attemptsFactor);
-  }, [accuracyPct, attemptsTotal]);
+    const base = Math.round(accuracyPct * attemptsFactor);
+    const streakBonus = Math.min(5, progress.streakCorrect ?? 0);
+    const raw = base + streakBonus;
+    return Math.max(0, Math.min(100, raw));
+  }, [accuracyPct, attemptsTotal, progress.streakCorrect]);
+
+  const readinessLabel =
+    readinessScore < 40
+      ? "Not Ready"
+      : readinessScore < 60
+        ? "Improving"
+        : readinessScore < 75
+          ? "Nearly Ready"
+          : "Exam Ready";
+
+  const readinessColor =
+    readinessScore < 40
+      ? "bg-rose-500/80"
+      : readinessScore < 60
+        ? "bg-amber-500/80"
+        : readinessScore < 75
+          ? "bg-sky-500/80"
+          : "bg-emerald-500/80";
 
   const domainRows = useMemo(() => {
     const rows = ALL_DOMAINS.map((domain) => {
@@ -182,17 +257,35 @@ export default function DashboardPage() {
     return { rows, focus };
   }, [progress.byDomain]);
 
+  const weakestDomain = useMemo(() => {
+    const rows = ALL_DOMAINS.map((domain) => {
+      const v = progress.byDomain?.[domain] ?? { attempts: 0, correct: 0 };
+      const attempts = Number(v.attempts) || 0;
+      const correct = Number(v.correct) || 0;
+      const acc = attempts > 0 ? correct / attempts : 1;
+      return { domain, acc, attempts };
+    }).filter((r) => r.attempts > 0);
+
+    if (rows.length === 0) return null;
+    rows.sort((a, b) => a.acc - b.acc);
+    return rows[0]?.domain ?? null;
+  }, [progress.byDomain]);
+
   const focusHref = useMemo(() => {
-    if (!domainRows.focus?.domain) return "/quiz";
-    const d = encodeURIComponent(domainRows.focus.domain);
-    return `/quiz?domain=${d}`;
-  }, [domainRows.focus?.domain]);
+    if (!weakestDomain) return "/quiz?batch=1&shuffle=1";
+    const d = encodeURIComponent(weakestDomain);
+    return `/quiz?domain=${d}&batch=1&shuffle=1`;
+  }, [weakestDomain]);
 
   const recentActivity = useMemo(() => {
     // derive from quiz history (already has domain + correct + ts)
     const list = Array.isArray(progress.history) ? progress.history : [];
     return list.slice(0, 10);
   }, [progress.history]);
+
+  const unlockedSet = useMemo(() => {
+    return new Set(progress.unlockedBadges ?? []);
+  }, [progress.unlockedBadges]);
 
   function resetProgress() {
     clearQuizProgress();
@@ -236,28 +329,50 @@ export default function DashboardPage() {
           Your local progress summary. This updates as you practice in /quiz.
         </p>
 
-        <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/quiz"
             className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 transition"
           >
-            Start Practice
+            Continue Practice
           </Link>
+          {missedCount > 0 && (
+            <Link
+              href="/quiz?review=missed"
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/10 transition"
+            >
+              Review Missed ({missedCount})
+            </Link>
+          )}
+        </div>
+        <div className="mt-2 text-xs text-white/60">
+          Tip: Review Missed drills questions you previously answered incorrectly.
+        </div>
 
+        <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href={focusHref}
             className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/10 transition"
             title={domainRows.focus?.domain ? `Practice: ${domainRows.focus.domain}` : "Practice"}
           >
-            Practice Focus Area
+            Practice Weakest Domain
           </Link>
 
+          {missedCount > 0 && (
+            <Link
+              href="/quiz?review=missed"
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/10 transition"
+            >
+              Review Missed ({missedCount})
+            </Link>
+          )}
+
           <Link
-            href="/flags"
+            href={flaggedCount > 0 ? "/quiz?review=flagged" : "/flags"}
             className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-white/10 transition"
             title="Review your flagged questions"
           >
-            Flagged ({flagCount})
+            Flagged ({flaggedCount})
           </Link>
 
           <button
@@ -267,6 +382,9 @@ export default function DashboardPage() {
           >
             Reset Progress
           </button>
+        </div>
+        <div className="mt-2 text-xs text-white/60">
+          Tip: Flag questions you want to revisit later.
         </div>
 
         <div className="mt-3 text-xs text-zinc-500">
@@ -278,7 +396,10 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
           <div className="text-sm font-semibold text-zinc-200">Readiness Score</div>
           <div className="mt-3 flex items-end gap-2">
-            <div className="text-4xl font-semibold text-zinc-100">{readinessScore}</div>
+            <div>
+              <div className="text-sm font-semibold text-zinc-200">{readinessLabel}</div>
+              <div className="text-4xl font-semibold text-zinc-100">{readinessScore}</div>
+            </div>
             <div className="text-sm text-zinc-400">/ 100</div>
           </div>
           <div className="mt-2 text-sm text-zinc-400">
@@ -286,11 +407,13 @@ export default function DashboardPage() {
           </div>
           <div className="mt-4 h-2 w-full rounded-full bg-black/30 overflow-hidden">
             <div
-              className="h-full rounded-full bg-indigo-500/80"
+              className={`h-full rounded-full ${readinessColor}`}
               style={{ width: `${readinessScore}%` }}
             />
           </div>
-          <div className="mt-2 text-xs text-zinc-500">(Simple scoring for now — we’ll refine later.)</div>
+          <div className="mt-2 text-xs text-zinc-500">
+            Focus on weak domains to reach the next zone.
+          </div>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -313,6 +436,29 @@ export default function DashboardPage() {
               : "Practice to reveal your weakest domain."}
           </div>
           <div className="mt-4 text-xs text-zinc-500">Next: we’ll make quiz filters actually work.</div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:col-span-3">
+          <div className="text-sm font-semibold text-zinc-200">Achievements</div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {BADGES.map((badge) => {
+              const unlocked = unlockedSet.has(badge.id);
+              return (
+                <div
+                  key={badge.id}
+                  className={`flex items-start gap-3 rounded-lg border border-white/10 bg-black/20 p-3 ${
+                    unlocked ? "" : "opacity-50"
+                  }`}
+                >
+                  <div className="text-lg">{badge.icon}</div>
+                  <div>
+                    <div className="text-sm font-semibold text-zinc-200">{badge.title}</div>
+                    <div className="mt-1 text-xs text-zinc-400">{badge.description}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

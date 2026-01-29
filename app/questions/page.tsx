@@ -14,7 +14,7 @@ export default function QuestionsCountPage() {
         <p className="mt-4 text-white/75 leading-relaxed">
           You currently have{" "}
           <span className="font-semibold text-white">{QUESTION_COUNT}</span>{" "}
-questions in the local quiz bank.
+           questions in the local quiz bank.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-2">
