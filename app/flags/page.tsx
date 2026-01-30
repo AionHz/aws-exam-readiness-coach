@@ -2,7 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { PremiumButton } from '../components/PremiumButton';
 import * as Bank from '../../lib/questionBank';
+import {
+  getFlaggedIds,
+  setFlaggedIds,
+  toggleFlaggedId,
+  subscribe,
+} from '../lib/progressStore';
 
 type Question = {
   id: string;
@@ -12,9 +19,8 @@ type Question = {
   answerIndex: number;
   explanation: any;
   coach?: any;
+  verified?: boolean;
 };
-
-const LS_FLAGS_KEY = 'clfc02_flags_v1';
 
 function toStringSafe(v: any): string {
   if (v === null || v === undefined) return '';
@@ -151,22 +157,6 @@ function normalizeQuestionBank(): Question[] {
   return normalized;
 }
 
-function loadFlags(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(LS_FLAGS_KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return Array.isArray(list) ? list.map((x) => String(x)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveFlags(ids: string[]) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(LS_FLAGS_KEY, JSON.stringify(ids));
-}
-
 export default function FlagsPage() {
   const allQuestions = useMemo(() => normalizeQuestionBank(), []);
   const [hydrated, setHydrated] = useState(false);
@@ -175,7 +165,11 @@ export default function FlagsPage() {
 
   useEffect(() => {
     setHydrated(true);
-    setFlagIds(loadFlags());
+    setFlagIds(getFlaggedIds());
+    const unsubscribe = subscribe(() => {
+      setFlagIds(getFlaggedIds());
+    });
+    return unsubscribe;
   }, []);
 
   const flagged = useMemo(() => {
@@ -188,24 +182,20 @@ export default function FlagsPage() {
     const q = query.trim().toLowerCase();
     if (!q) return flagged;
     return flagged.filter((x) => {
-      return (
-        (x.domain || '').toLowerCase().includes(q) ||
-        (x.question || '').toLowerCase().includes(q)
-      );
+      const domain = (x.domain || '').toString();
+      const question = (x.question || '').toString();
+      const choices = (x.choices || []).map((c) => (c || '').toString()).join(' ');
+      const haystack = `${domain} ${question} ${choices}`.toLowerCase();
+      return haystack.includes(q);
     });
   }, [flagged, query]);
 
   function unflag(id: string) {
-    setFlagIds((prev) => {
-      const next = prev.filter((x) => x !== id);
-      saveFlags(next);
-      return next;
-    });
+    toggleFlaggedId(id);
   }
 
   function clearAll() {
-    setFlagIds([]);
-    saveFlags([]);
+    setFlaggedIds([]);
   }
 
   if (!hydrated) {
@@ -230,25 +220,19 @@ export default function FlagsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/quiz"
-            className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 transition"
-          >
-            Practice
+          <Link href="/quiz" className="no-underline hover:no-underline focus:no-underline">
+            <PremiumButton variant="indigo" size="md" type="button">
+              Practice
+            </PremiumButton>
           </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-200 hover:bg-white/10 transition"
-          >
-            Dashboard
+          <Link href="/dashboard" className="no-underline hover:no-underline focus:no-underline">
+            <PremiumButton variant="neutral" size="md" type="button">
+              Dashboard
+            </PremiumButton>
           </Link>
-          <button
-            type="button"
-            onClick={clearAll}
-            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-200 hover:bg-white/10 transition"
-          >
+          <PremiumButton variant="neutral" size="md" type="button" onClick={clearAll}>
             Clear all
-          </button>
+          </PremiumButton>
         </div>
       </div>
 
@@ -286,19 +270,22 @@ export default function FlagsPage() {
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/quiz?domain=${encodeURIComponent(q.domain)}`}
-                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-200 hover:bg-white/10 transition"
+                      className="no-underline hover:no-underline focus:no-underline"
                       title="Jump to this domain in Practice"
                     >
-                      Practice domain
+                      <PremiumButton variant="neutral" size="sm" type="button">
+                        Practice domain
+                      </PremiumButton>
                     </Link>
-                    <button
+                    <PremiumButton
+                      variant="orange"
+                      size="sm"
                       type="button"
                       onClick={() => unflag(q.id)}
-                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-amber-200 hover:bg-white/10 transition"
                       title="Remove flag"
                     >
                       ★ Unflag
-                    </button>
+                    </PremiumButton>
                   </div>
                 </div>
 

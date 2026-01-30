@@ -1,58 +1,93 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { cardBase, cardHover, linkReset } from "./lib/ui";
+import LinkButton from "./components/ui/LinkButton";
+import { PremiumButton } from "./components/PremiumButton";
+import SurfaceShell from "./components/SurfaceShell";
+import ReadinessGauge from "./components/ReadinessGauge";
+import { getPracticeStats, subscribe } from "./lib/progressStore";
+import { MIN_PRACTICE_SCORED } from "./lib/readiness";
 
 export default function Home() {
   const [progress, setProgress] = useState<object | null>(null);
-  const [missedCount, setMissedCount] = useState(0);
+  const [wrongCount, setWrongCount] = useState(0);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<number | null>(null);
+  const [practiceStats, setPracticeStats] = useState({
+    attempts: 0,
+    correct: 0,
+    byDomain: {
+      "Cloud Concepts": { attempts: 0, correct: 0 },
+      Security: { attempts: 0, correct: 0 },
+      Technology: { attempts: 0, correct: 0 },
+      "Billing & Pricing": { attempts: 0, correct: 0 },
+    },
+    lastUpdated: null as number | null,
+  });
 
   useEffect(() => {
     try {
       const rawProgress = localStorage.getItem("aws-exam-readiness-progress-v1");
-      setProgress(rawProgress ? (JSON.parse(rawProgress) as object) : null);
+      const parsedProgress = rawProgress ? (JSON.parse(rawProgress) as object) : null;
+      setProgress(parsedProgress);
 
-      const rawMissed = localStorage.getItem("aws-exam-readiness-quiz-missed-v1");
-      const parsedMissed = rawMissed ? (JSON.parse(rawMissed) as string[]) : [];
-      setMissedCount(Array.isArray(parsedMissed) ? parsedMissed.length : 0);
+      const rawWrong = localStorage.getItem("aws-exam-readiness-quiz-wrong-v1");
+      const parsedWrong = rawWrong ? (JSON.parse(rawWrong) as string[]) : [];
+      if (Array.isArray(parsedWrong)) {
+        setWrongCount(parsedWrong.length);
+      } else if (!rawWrong) {
+        const legacyRaw = localStorage.getItem("aws-exam-readiness-quiz-missed-v1");
+        const legacyParsed = legacyRaw ? (JSON.parse(legacyRaw) as string[]) : [];
+        if (Array.isArray(legacyParsed)) {
+          localStorage.setItem("aws-exam-readiness-quiz-wrong-v1", JSON.stringify(legacyParsed));
+          setWrongCount(legacyParsed.length);
+        } else {
+          setWrongCount(0);
+        }
+      } else {
+        setWrongCount(0);
+      }
+      setPracticeStats(getPracticeStats());
     } catch {
       setProgress(null);
-      setMissedCount(0);
+      setWrongCount(0);
+      setPracticeStats(getPracticeStats());
     }
   }, []);
 
-  const attemptsTotal =
-    typeof progress === "object" && progress && "attemptsTotal" in progress
-      ? Number((progress as { attemptsTotal?: number }).attemptsTotal ?? 0)
-      : 0;
-  const correctTotal =
-    typeof progress === "object" && progress && "correctTotal" in progress
-      ? Number((progress as { correctTotal?: number }).correctTotal ?? 0)
-      : 0;
-  const streak =
-    typeof progress === "object" && progress && "streakCorrect" in progress
-      ? Number((progress as { streakCorrect?: number }).streakCorrect ?? 0)
-      : 0;
-  const accuracy =
-    attemptsTotal > 0 ? Math.round((correctTotal / attemptsTotal) * 100) : 0;
-  const coveredDomains = (() => {
-    if (!progress || typeof progress !== "object" || !("byDomain" in progress)) return 0;
-    const byDomain = (progress as { byDomain?: Record<string, { attempts?: number }> }).byDomain;
-    if (!byDomain) return 0;
-    return Object.values(byDomain).filter((v) => Number(v?.attempts ?? 0) > 0).length;
-  })();
-  const coveragePct = Math.round((coveredDomains / 4) * 100);
-  const attemptsFactor = Math.min(1, attemptsTotal / 50);
-  const readinessRaw =
-    0.55 * accuracy + 0.25 * coveragePct + 0.2 * (attemptsFactor * 100);
-  const readiness = Math.max(0, Math.min(100, Math.round(readinessRaw)));
-  const readinessLabel =
+  useEffect(() => {
+    setPracticeStats(getPracticeStats());
+    const unsubscribe = subscribe(() => {
+      setPracticeStats(getPracticeStats());
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  const readiness =
+    practiceStats.attempts === 0
+      ? 0
+      : Math.round((practiceStats.correct / practiceStats.attempts) * 100);
+  const [displayReadiness, setDisplayReadiness] = useState(0);
+  const confidenceLabel =
     readiness < 40
-      ? "Not Ready"
+      ? "Low confidence"
       : readiness < 60
-        ? "Improving"
-        : readiness < 80
-          ? "Almost Ready"
-          : "Exam Ready";
+        ? "Building confidence"
+        : readiness < 75
+          ? "Moderate confidence"
+          : readiness < 90
+            ? "High confidence"
+            : "Exam ready";
   const weakestDomain = (() => {
     if (!progress || typeof progress !== "object" || !("byDomain" in progress)) return null;
     const byDomain = (progress as { byDomain?: Record<string, { attempts?: number; correct?: number }> })
@@ -70,127 +105,222 @@ export default function Home() {
     return weakest?.domain ?? null;
   })();
 
+  const weakestHref = weakestDomain
+    ? `/quiz?domain=${encodeURIComponent(weakestDomain)}`
+    : "/dashboard";
+
+  useEffect(() => {
+    const duration = 600;
+    const start = performance.now();
+    const from = 0;
+    const to = readiness;
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplayReadiness(Math.round(from + (to - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [readiness]);
+  const donationCards = [
+    { id: "btc", label: "Bitcoin", address: "bc1qYOURADDRESSHERE" },
+    { id: "eth", label: "Ethereum", address: "0xYOURADDRESSHERE" },
+    { id: "sol", label: "Solana", address: "YOURSOLANAADDRESS" },
+  ];
+
+  function handleCopy(id: string, address: string) {
+    if (!navigator?.clipboard?.writeText) return;
+    navigator.clipboard.writeText(address).then(() => {
+      setCopiedId(id);
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopiedId(null);
+        copyTimeoutRef.current = null;
+      }, 1200);
+    });
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#050816] via-[#050816] to-[#060b1f] text-white">
-      <div className="mx-auto max-w-5xl px-6 py-16">
-        <div className="text-center">
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            AWS Exam Readiness Coach
+    <SurfaceShell variant="hero">
+      <div className="relative mx-auto max-w-5xl px-6 pb-10">
+          <div className="text-center cursor-default">
+          <h1 className="text-5xl md:text-6xl font-semibold tracking-tight text-white">
+            AWS Exam{" "}
+            <span className="bg-gradient-to-r from-indigo-300 via-sky-300 to-emerald-300 bg-clip-text text-transparent">
+              Readiness
+            </span>{" "}
+            Coach
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-white/70 sm:text-base">
+          <p className="mx-auto mt-4 max-w-2xl text-sm text-white/80 sm:text-base leading-relaxed">
             Adaptive practice for the AWS Certified Cloud Practitioner (CLF-C02). Drill smart.
             Track weaknesses. Know when you’re truly ready.
           </p>
 
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/quiz"
-              className="rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white shadow hover:bg-indigo-400"
-            >
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <LinkButton href="/quiz" variant="primary" size="md">
               Practice
-            </Link>
-            <Link
-              href="/dashboard"
-              className="rounded-xl bg-white/10 px-5 py-2.5 text-sm font-medium text-white shadow hover:bg-white/15"
-            >
+            </LinkButton>
+            <LinkButton href="/dashboard" variant="ghost" size="md">
               Dashboard
-            </Link>
+            </LinkButton>
           </div>
 
-          <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-white/10 bg-white/5 p-5 text-left">
+          <div className={`mx-auto mt-6 max-w-2xl p-5 text-left ${cardBase} ${cardHover}`}>
             <div className="grid items-center gap-6 md:grid-cols-[1fr_220px]">
               <div>
-                <div className="text-sm font-semibold text-white/90">Readiness snapshot</div>
+                <div className="text-sm font-semibold text-white/90">Snapshot</div>
                 <div className="mt-2 text-sm text-white/80">
-                  Attempts: {attemptsTotal} • Accuracy: {accuracy}% • Streak: {streak}
+                  A quick pulse on your overall readiness. Practice to push this higher.
                 </div>
-                <div className="mt-2 text-xs text-white/60">
-                  {weakestDomain
-                    ? `Weakest domain: ${weakestDomain}`
-                    : "No domain data yet — start practicing."}
-                </div>
-                {missedCount > 0 && (
+                {wrongCount > 0 && (
                   <div className="mt-3">
-                    <Link
-                      href="/quiz?review=missed"
-                      className="rounded-xl bg-white/10 px-5 py-2.5 text-sm font-medium text-white shadow hover:bg-white/15"
-                    >
-                      Review Missed ({missedCount})
-                    </Link>
+                    <LinkButton href="/quiz?review=wrong" variant="ghost" size="md">
+                      Review Wrong ({wrongCount})
+                    </LinkButton>
                   </div>
                 )}
               </div>
 
-              <Link href="/dashboard" className="flex flex-col items-center justify-center">
-                <div
-                  className="relative grid h-40 w-40 place-items-center rounded-full"
-                  style={{
-                    background: `conic-gradient(from 270deg, #6366f1 0%, #22c55e ${readiness}%, rgba(255,255,255,0.10) ${readiness}%, rgba(255,255,255,0.10) 100%)`,
-                  }}
-                >
-                  <div
-                    className="absolute inset-0 rounded-full blur-xl opacity-30"
-                    style={{
-                      background: `conic-gradient(from 270deg, #6366f1 0%, #22c55e ${readiness}%, rgba(255,255,255,0) ${readiness}%, rgba(255,255,255,0) 100%)`,
-                    }}
-                  />
-                  <div className="relative grid h-[120px] w-[120px] place-items-center rounded-full border border-white/10 bg-[#0b1020] text-center shadow-inner">
-                    <div className="text-3xl font-bold text-white">{readiness}%</div>
-                    <div className="mt-1 text-sm text-white/70">{readinessLabel}</div>
-                  </div>
-                </div>
-                <div className="mt-3 text-center text-xs text-white/60">
-                  Based on accuracy, coverage, and volume
-                </div>
+              <Link
+                href="/dashboard"
+                className={`flex flex-col items-center justify-center ${linkReset}`}
+              >
+                <ReadinessGauge percent={displayReadiness} label={confidenceLabel} />
               </Link>
             </div>
+            <div className="mt-3 text-xs text-white/50">
+              Estimate based on your practice history. The real exam uses scaled scoring (100–1000)
+              with 700 to pass.
+            </div>
+          </div>
+          </div>
+
+        <div className="mt-12">
+          <div className="text-sm font-semibold text-white/90">Quick Actions</div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Link
+              href="/quiz"
+              className={`transform-gpu cursor-pointer p-5 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 ${cardBase} ${cardHover} ${linkReset}`}
+              aria-label="Continue Practice"
+            >
+              <div className="flex items-start justify-between">
+                <div className="text-sm font-semibold">Continue Practice</div>
+                <div className="text-white/60">→</div>
+              </div>
+              <div className="mt-1 text-sm text-white/70">
+                Jump back into your next set of questions.
+              </div>
+            </Link>
+
+            <Link
+              href={weakestHref}
+              className={`transform-gpu cursor-pointer p-5 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 ${cardBase} ${cardHover} ${linkReset}`}
+              aria-label="Practice Weakest Area"
+            >
+              <div className="flex items-start justify-between">
+                <div className="text-sm font-semibold">Practice Weakest Area</div>
+                <div className="text-white/60">→</div>
+              </div>
+              <div className="mt-1 text-sm text-white/70">
+                {weakestDomain ? `Focus on ${weakestDomain}.` : "Open Dashboard to find your focus."}
+              </div>
+            </Link>
+
+            <Link
+              href="/quiz?mode=exam"
+              className={`transform-gpu cursor-pointer p-5 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 ${cardBase} ${cardHover} ${linkReset}`}
+              aria-label="Start Full Exam"
+            >
+              <div className="flex items-start justify-between">
+                <div className="text-sm font-semibold">Start Full Exam</div>
+                <div className="text-white/60">→</div>
+              </div>
+              <div className="mt-1 text-sm text-white/70">
+                Take a 65‑question exam‑style session.
+              </div>
+            </Link>
           </div>
         </div>
 
-        <div className="mt-12 grid gap-4 sm:grid-cols-3">
-          <Link
-            href="/quiz"
-            className="rounded-2xl border border-white/10 bg-white/5 p-5 transition-colors hover:bg-white/5 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-            aria-label="Go to Practice"
-          >
-            <div className="flex items-start justify-between">
-              <div className="text-sm font-semibold">Adaptive Drilling</div>
-              <div className="text-white/60">→</div>
-            </div>
-            <div className="mt-1 text-sm text-white/70">
-              The system focuses on weak areas so you improve faster.
-            </div>
-          </Link>
+        <section className={`mt-12 p-6 ${cardBase} ${cardHover} cursor-default`}>
+          <div className="text-lg font-semibold">Support the Project</div>
+          <p className="mt-2 text-sm text-white/80 leading-relaxed">
+            This tool is free and independently built. If it helped you prepare for the AWS
+            exam, you can support continued development and future features.
+          </p>
 
-          <Link
-            href="/dashboard"
-            className="rounded-2xl border border-white/10 bg-white/5 p-5 transition-colors hover:bg-white/5 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-            aria-label="Go to Dashboard"
-          >
-            <div className="flex items-start justify-between">
-              <div className="text-sm font-semibold">Readiness Score</div>
-              <div className="text-white/60">→</div>
-            </div>
-            <div className="mt-1 text-sm text-white/70">
-              A real-time score that shows when you’re exam-ready.
-            </div>
-          </Link>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            {donationCards.map((card) => (
+              <div
+                key={card.id}
+                className={`p-4 ${cardBase} ${cardHover} cursor-default`}
+              >
+                <div className="flex items-center gap-2 font-semibold">
+                  {card.id === "btc" && (
+                    <svg viewBox="0 0 32 32" className="h-6 w-6" aria-hidden="true">
+                      <circle cx="16" cy="16" r="16" fill="#F59E0B" />
+                      <text
+                        x="16"
+                        y="16.5"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize="18"
+                        fontWeight="800"
+                        fontFamily="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial"
+                        fill="#0b1020"
+                      >
+                        ₿
+                      </text>
+                    </svg>
+                  )}
+                  {card.id === "eth" && (
+                    <svg
+                      viewBox="0 0 256 417"
+                      fill="currentColor"
+                      className="h-6 w-6 text-white/80"
+                      aria-hidden="true"
+                    >
+                      <path d="M127.9 0L124.7 10.8v270.5l3.2 3.2 127.9-75.5z" />
+                      <path d="M127.9 0L0 209l127.9 75.5V0z" />
+                      <path d="M127.9 309.2l-1.8 2.2v102.6l1.8 5.2 128-180.2z" />
+                      <path d="M127.9 419.2V309.2L0 239z" />
+                    </svg>
+                  )}
+                  {card.id === "sol" && (
+                    <svg viewBox="0 0 397 311" className="h-6 w-6" aria-hidden="true">
+                      <linearGradient id={`sol-${card.id}`} x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#9945FF" />
+                        <stop offset="100%" stopColor="#14F195" />
+                      </linearGradient>
+                      <path
+                        fill={`url(#sol-${card.id})`}
+                        d="M64 0h333l-64 64H0zM64 123h333l-64 64H0zM64 247h333l-64 64H0z"
+                      />
+                    </svg>
+                  )}
+                  <span className="text-sm">{card.label}</span>
+                </div>
+                <div className="mt-2 break-all text-xs text-white/70">{card.address}</div>
+                <PremiumButton
+                  type="button"
+                  size="sm"
+                  variant="neutral"
+                  onClick={() => handleCopy(card.id, card.address)}
+                  className="mt-4"
+                >
+                  {copiedId === card.id ? "Copied!" : "Copy address"}
+                </PremiumButton>
+              </div>
+            ))}
+          </div>
 
-          <Link
-            href="/dashboard"
-            className="rounded-2xl border border-white/10 bg-white/5 p-5 transition-colors hover:bg-white/5 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-            aria-label="Go to Dashboard"
-          >
-            <div className="flex items-start justify-between">
-              <div className="text-sm font-semibold">Weakness Tracking</div>
-              <div className="text-white/60">→</div>
-            </div>
-            <div className="mt-1 text-sm text-white/70">
-              Automatically identifies topics holding you back.
-            </div>
-          </Link>
-        </div>
+          <div className="mt-4 text-xs text-white/50">100% optional • No ads • No tracking</div>
+        </section>
       </div>
-    </div>
+    </SurfaceShell>
   );
 }

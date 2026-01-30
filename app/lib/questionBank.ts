@@ -18,13 +18,25 @@ export type Question = {
   prompt: string;
   choices: Choice[];
   answerId: ChoiceId;
-  explanation: string;
+  explanation?: string;
   coaching: string;
+  whyCorrect: string;
+  whyWrong?: Partial<Record<ChoiceId, string>>;
+  memoryHook?: string;
+  testedConcepts?: string[];
+  sources?: { title: string; url: string }[];
+  verified?: boolean;
+};
+
+type QuestionBase = Omit<
+  Question,
+  "whyCorrect" | "whyWrong" | "memoryHook" | "testedConcepts" | "sources" | "verified"
+> & {
   whyWrong?: Partial<Record<ChoiceId, string>>;
 };
 
 // ✅ Move the entire array here (paste your current QUESTION_BANK contents)
-export const QUESTION_BANK: Question[] = [
+const QUESTION_BANK_BASE: QuestionBase[] = [
     {
         id: "cc-elasticity",
         domain: "Cloud Concepts",
@@ -1293,4 +1305,2809 @@ export const QUESTION_BANK: Question[] = [
   },
 },
     ];
-    export const QUESTION_COUNT = QUESTION_BANK.length;
+
+const NOT_VERIFIED = "Not verified yet — add a source or knowledge entry.";
+const buildDefaultWhyWrong = (
+  correct: ChoiceId,
+): Partial<Record<ChoiceId, string>> => {
+  const all: Partial<Record<ChoiceId, string>> = {
+    A: NOT_VERIFIED,
+    B: NOT_VERIFIED,
+    C: NOT_VERIFIED,
+    D: NOT_VERIFIED,
+  };
+  delete all[correct];
+  return all;
+};
+
+const mergeWhyWrong = (
+  correct: ChoiceId,
+  overrides?: Partial<Record<ChoiceId, string>>,
+) => ({
+  ...buildDefaultWhyWrong(correct),
+  ...(overrides ?? {}),
+});
+
+type QuestionKnowledge = {
+  whyCorrect: string;
+  memoryHook: string;
+  whyWrong?: Partial<Record<ChoiceId, string>>;
+};
+
+const QUESTION_KNOWLEDGE: Record<string, QuestionKnowledge> = {
+  "sec-shared": {
+    whyCorrect:
+      "The shared responsibility model says AWS secures the cloud infrastructure, while customers secure what they deploy in the cloud. That makes \"security of the cloud (infrastructure)\" the AWS responsibility.",
+    whyWrong: {
+      A: "The knowledge base assigns customer responsibility for data and access, so data classification is not AWS's role.",
+      D: "IAM and configuration are customer responsibilities under the shared responsibility model.",
+    },
+    memoryHook: "AWS = security of the cloud; you = security in the cloud.",
+  },
+  "cc-paygo": {
+    whyCorrect:
+      "Billing knowledge lists pricing models such as On-Demand, and the question describes a pay-as-you-go principle that reduces upfront costs. Pay-as-you-go aligns with paying only for usage instead of buying capacity upfront.",
+    memoryHook: "Pay-as-you-go = no upfront buy.",
+  },
+  "sec-mfa": {
+    whyCorrect:
+      "The knowledge base recommends enabling MFA on the root account and locking it down. MFA adds a second factor to protect the most sensitive identity.",
+    whyWrong: {
+      C: "The knowledge base says to avoid daily root usage; using root for daily administration conflicts with that guidance.",
+    },
+    memoryHook: "Root + MFA, then lock it down.",
+  },
+  "sec-iam-role": {
+    whyCorrect:
+      "The knowledge base says to use IAM roles for EC2 to access AWS services without storing keys. An instance role provides temporary credentials, so this is the secure approach.",
+    whyWrong: {
+      A: "The knowledge base recommends roles instead of storing access keys on instances.",
+      D: "The knowledge base recommends roles instead of exposed credentials.",
+    },
+    memoryHook: "EC2 access = IAM role.",
+  },
+  "sec-kms": {
+    whyCorrect:
+      "The knowledge base points to AWS KMS for encryption keys used with S3 and EBS. Therefore KMS is the service for creating and managing encryption keys.",
+    memoryHook: "Keys = KMS.",
+  },
+  "sec-least-privilege": {
+    whyCorrect:
+      "The knowledge base says to apply least-privilege policies. That means granting only the permissions needed to perform a task.",
+    whyWrong: {
+      A: "Least privilege is the opposite of default admin access.",
+      D: "The knowledge base advises against daily root usage; least privilege avoids that.",
+    },
+    memoryHook: "Least privilege = minimum access.",
+  },
+  "sec-cloudtrail": {
+    whyCorrect:
+      "Monitoring knowledge defines CloudTrail as recording API calls and account activity for audit. That matches the question.",
+    whyWrong: {
+      A: "CloudWatch is for metrics and logs, while CloudTrail is for API auditing.",
+    },
+    memoryHook: "Trail = API audit log.",
+  },
+  "sec-shared-s3": {
+    whyCorrect:
+      "The shared responsibility model says customers secure their data and configurations. Encrypting data stored in S3 is part of securing customer data, so it is the customer's responsibility.",
+    whyWrong: {
+      A: "The knowledge base assigns AWS responsibility to infrastructure, not customer data.",
+      C: "The knowledge base assigns data security to the customer, so \"both\" does not match the described split.",
+    },
+    memoryHook: "Your data, your responsibility.",
+  },
+  "hard-sec-root-02": {
+    whyCorrect:
+      "The knowledge base explicitly recommends enabling MFA on the root account and locking it down. That is the most important protection step listed.",
+    whyWrong: {
+      A: "The knowledge base says to avoid daily root usage, so using root daily is a bad practice.",
+    },
+    memoryHook: "Protect root with MFA.",
+  },
+  "tech-ec2": {
+    whyCorrect:
+      "Compute knowledge defines EC2 as virtual servers you manage. Resizable compute capacity in the cloud matches EC2.",
+    memoryHook: "EC2 = virtual servers.",
+  },
+  "tech-lambda": {
+    whyCorrect:
+      "Compute knowledge defines Lambda as serverless functions that run on demand. That matches running code without managing servers.",
+    memoryHook: "No servers? Lambda.",
+  },
+  "tech-efs": {
+    whyCorrect:
+      "Storage knowledge defines EFS as shared file storage that can be mounted by multiple EC2 instances. That matches shared file storage for EC2.",
+    whyWrong: {
+      A: "S3 is object storage, not a shared file system.",
+      B: "EBS is block storage for a single instance.",
+    },
+    memoryHook: "EFS = shared file system.",
+  },
+  "tech-vpc": {
+    whyCorrect:
+      "Networking knowledge defines a VPC as an isolated virtual network. The primary purpose is network isolation.",
+    memoryHook: "VPC = isolated network.",
+  },
+  "tech-elb": {
+    whyCorrect:
+      "Compute knowledge says ELB distributes traffic while Auto Scaling changes capacity. The primary function of ELB is traffic distribution across targets.",
+    memoryHook: "ELB spreads traffic.",
+  },
+  "tech-autoscaling": {
+    whyCorrect:
+      "Compute knowledge says Auto Scaling changes capacity and adds EC2 instances during peak traffic. That is automatic adjustment of compute capacity.",
+    memoryHook: "Auto Scaling adds/removes instances.",
+  },
+  "tech-cloudwatch": {
+    whyCorrect:
+      "Monitoring knowledge defines CloudWatch as metrics, logs, alarms, and dashboards. That matches monitoring metrics and logs.",
+    whyWrong: {
+      A: "CloudTrail is for API auditing, while CloudWatch is for monitoring.",
+    },
+    memoryHook: "CloudWatch = metrics/logs.",
+  },
+  "tech-network-isolation": {
+    whyCorrect:
+      "Security and networking knowledge say security groups are stateful instance firewalls. Instance-level inbound and outbound control is a security group.",
+    whyWrong: {
+      A: "NACLs are stateless subnet filters, not instance-level firewalls.",
+    },
+    memoryHook: "Instance firewall = SG.",
+  },
+  "tech-scaling-choice": {
+    whyCorrect:
+      "Compute knowledge defines Lambda as serverless functions that run on demand. That fits unpredictable spikes with minimal operational overhead.",
+    memoryHook: "Spikes + low ops = Lambda.",
+  },
+  "hard-tech-scale-02": {
+    whyCorrect:
+      "Compute knowledge says Auto Scaling changes capacity and adds EC2 instances during peak traffic. That matches handling unpredictable spikes without paying for idle capacity.",
+    memoryHook: "Spikes = Auto Scaling.",
+  },
+  "tech-s3": {
+    whyCorrect:
+      "Storage knowledge defines S3 as object storage. The question asks for object storage, so S3 fits.",
+    memoryHook: "Objects live in S3 buckets.",
+  },
+  "bill-costexplorer": {
+    whyCorrect:
+      "Billing knowledge says Cost Explorer analyzes and visualizes spend trends. That matches visualizing and analyzing costs over time.",
+    memoryHook: "Explore costs with Cost Explorer.",
+  },
+  "bill-budgets": {
+    whyCorrect:
+      "Billing knowledge says to set AWS Budgets alerts at thresholds like 80% and 100% of a target. That matches setting cost thresholds and alerts.",
+    whyWrong: {
+      B: "CloudTrail is for auditing API activity, not cost alerts.",
+      C: "CloudWatch is for monitoring metrics and logs, not cost alerts.",
+    },
+    memoryHook: "Budget = alert.",
+  },
+  "bill-savingsplans": {
+    whyCorrect:
+      "Billing knowledge says Savings Plans are used for steady compute usage and are more flexible pricing models. A commitment to consistent usage matches Savings Plans.",
+    memoryHook: "Steady compute = Savings Plans.",
+  },
+  "bill-free-tier": {
+    whyCorrect:
+      "Billing knowledge states Free Tier is limited usage. The option about helping new users explore services at low cost matches that.",
+    whyWrong: {
+      A: "Free Tier is limited usage, not unlimited.",
+      C: "Free Tier is limited usage, not a replacement for paid services.",
+      D: "Free Tier does not eliminate billing; it provides limited usage.",
+    },
+    memoryHook: "Free Tier is limited.",
+  },
+  "bill-tags": {
+    whyCorrect:
+      "Billing knowledge defines cost allocation tags for tracking spend by team or project. That matches organizing costs by project.",
+    memoryHook: "Tags = cost allocation.",
+  },
+  "bill-cost-allocation": {
+    whyCorrect:
+      "Billing knowledge defines cost allocation tags for tracking spend by team or project. That matches breaking down costs by department.",
+    whyWrong: {
+      A: "Budgets are for alerts, not allocation by department.",
+    },
+    memoryHook: "Cost allocation = tags.",
+  },
+  "bill-spot": {
+    whyCorrect:
+      "Billing knowledge says Spot is cheap but interruptible and is used for non-critical batch jobs. That implies the key risk is interruption by AWS.",
+    memoryHook: "Spot = cheap but interruptible.",
+  },
+  "bill-savings-vs-ri": {
+    whyCorrect:
+      "Billing knowledge says Savings Plans are more flexible across compute services than Reserved Instances. That flexibility is the key advantage.",
+    whyWrong: {
+      A: "Savings Plans are described as more flexible across compute, not only EC2.",
+    },
+    memoryHook: "Savings Plans = flexible coverage.",
+  },
+  "bill-cost-optimization": {
+    whyCorrect:
+      "Support knowledge says Trusted Advisor provides automated checks and recommendations, including cost-related checks. That matches recommendations to reduce costs and improve performance.",
+    whyWrong: {
+      A: "Budgets are for alerts, not recommendations.",
+      C: "Cost Explorer analyzes trends, not recommendations.",
+    },
+    memoryHook: "Advisor = recommendations.",
+  },
+  "hard-bill-budget-01": {
+    whyCorrect:
+      "Billing knowledge says Budgets set alerts at thresholds, which aligns with forecasted cost alerts.",
+    whyWrong: {
+      B: "Cost Explorer analyzes trends, not alerts.",
+      C: "Trusted Advisor provides automated checks, not cost alerts.",
+    },
+    memoryHook: "Forecast alerts = Budgets.",
+  },
+  "hard-bill-tags-02": {
+    whyCorrect:
+      "Billing knowledge says cost allocation tags track spend by team or department. That is required to allocate costs by department.",
+    whyWrong: {
+      C: "Budgets are for alerts, not allocation by department.",
+    },
+    memoryHook: "Departments = cost tags.",
+  },
+  "hard-cloud-support-02": {
+    whyCorrect:
+      "Support knowledge states Enterprise includes a Technical Account Manager (TAM).",
+    memoryHook: "TAM = Enterprise.",
+  },
+  "hard-cloud-shared-01": {
+    whyCorrect:
+      "The shared responsibility model says customers handle configurations, and security groups are customer configuration. That makes security group configuration the customer responsibility.",
+    whyWrong: {
+      A: "The knowledge base assigns AWS responsibility to facilities and the underlying host layer.",
+    },
+    memoryHook: "Config is on you.",
+  },
+  "hard-sec-logging-02": {
+    whyCorrect:
+      "Monitoring knowledge defines CloudTrail as recording API calls and account activity for audit. That matches an audit request for API calls.",
+    whyWrong: {
+      A: "CloudWatch is for metrics and logs, while CloudTrail is for API auditing.",
+    },
+    memoryHook: "CloudTrail = API audit.",
+  },
+  "cc-elasticity": {
+    whyCorrect:
+      "Elasticity means resources scale up or down automatically to match demand, which reduces upfront capacity planning.",
+    whyWrong: {
+      A: "Fixed capacity planning is the opposite of elastic scaling.",
+      C: "Manual hardware upgrades are traditional infrastructure work, not elasticity.",
+      D: "Single data center operation is about location, not scaling.",
+    },
+    memoryHook: "Elasticity = automatic scale.",
+  },
+  "cc-global": {
+    whyCorrect:
+      "An AWS Region is a geographic area that contains multiple Availability Zones.",
+    whyWrong: {
+      A: "Edge locations are for content delivery, not Regions.",
+      C: "A single data center is smaller than a Region and does not define it.",
+      D: "An AWS account boundary is an identity boundary, not a Region.",
+    },
+    memoryHook: "Region = geography + multiple AZs.",
+  },
+  "cc-az": {
+    whyCorrect:
+      "Multiple Availability Zones improve fault tolerance and high availability by avoiding a single point of failure.",
+    whyWrong: {
+      A: "AZs are used to improve availability, not increase latency.",
+      C: "IAM complexity is unrelated to Availability Zones.",
+      D: "Backups are still required even with Multi-AZ designs.",
+    },
+    memoryHook: "Multi-AZ = high availability.",
+  },
+  "tech-rds": {
+    whyCorrect:
+      "Amazon RDS is the managed relational database service in AWS.",
+    whyWrong: {
+      B: "Amazon S3 is object storage, not a relational database.",
+      C: "Amazon EMR is for big data processing, not relational databases.",
+      D: "AWS Direct Connect is networking, not a database service.",
+    },
+    memoryHook: "Relational DB = RDS.",
+  },
+  "tech-cloudfront": {
+    whyCorrect:
+      "Amazon CloudFront is a content delivery network that caches content at edge locations for low latency.",
+    whyWrong: {
+      B: "Route 53 is DNS, not a CDN.",
+      C: "Snowball is for data transfer, not global content delivery.",
+      D: "Redshift is a data warehouse, not a CDN.",
+    },
+    memoryHook: "CDN + edge = CloudFront.",
+  },
+  "cc-scalability": {
+    whyCorrect:
+      "Scalability refers to planned growth, while elasticity adjusts resources automatically based on demand.",
+    whyWrong: {
+      A: "Scalability and elasticity are related but not the same.",
+      C: "This reverses the typical distinction between scalability and elasticity.",
+      D: "Scalability applies to more than just storage.",
+    },
+    memoryHook: "Scalability plans; elasticity auto-adjusts.",
+  },
+  "cc-ha": {
+    whyCorrect:
+      "High availability is designed to avoid single points of failure so services remain up during component failures.",
+    whyWrong: {
+      A: "HA is about availability, not preventing security breaches.",
+      B: "HA does not directly control costs.",
+      D: "HA addresses infrastructure failures, not application code quality.",
+    },
+    memoryHook: "HA = no single point of failure.",
+  },
+  "cc-dr": {
+    whyCorrect:
+      "Disaster recovery focuses on restoring systems and data after an outage or failure.",
+    whyWrong: {
+      A: "Reducing latency is a performance goal, not DR.",
+      C: "Security posture is a separate concern from recovery after failure.",
+      D: "DR is about recovery, not lowering monthly costs.",
+    },
+    memoryHook: "DR = recover after failure.",
+  },
+  "cc-capex-opex": {
+    whyCorrect:
+      "Cloud services primarily shift spending to operational expenditure (OpEx) rather than upfront capital expenditure (CapEx).",
+    whyWrong: {
+      A: "CapEx is upfront investment, which cloud aims to reduce.",
+      C: "Depreciation is an on-prem accounting model, not a cloud pricing model.",
+      D: "Upfront capital investment is the opposite of cloud's OpEx model.",
+    },
+    memoryHook: "Cloud = OpEx.",
+  },
+  "sec-encryption-at-rest": {
+    whyCorrect:
+      "Encryption at rest protects data stored on disks or storage media.",
+    whyWrong: {
+      A: "Data moving across networks is encryption in transit.",
+      C: "IAM credentials are identities, not stored data.",
+      D: "Application code is not the focus of encryption at rest.",
+    },
+    memoryHook: "At rest = stored data.",
+  },
+  "sec-shield": {
+    whyCorrect:
+      "AWS Shield is the managed service that protects against DDoS attacks.",
+    whyWrong: {
+      B: "Inspector is for vulnerability scanning, not DDoS protection.",
+      C: "Artifact is for compliance reports, not DDoS protection.",
+      D: "Trusted Advisor provides recommendations, not DDoS protection.",
+    },
+    memoryHook: "DDoS protection = Shield.",
+  },
+  "tech-dynamodb": {
+    whyCorrect:
+      "Amazon DynamoDB is a fully managed NoSQL database service.",
+    whyWrong: {
+      A: "Amazon RDS is relational, not NoSQL.",
+      C: "Amazon Redshift is a data warehouse, not NoSQL.",
+      D: "Amazon Aurora is relational, not NoSQL.",
+    },
+    memoryHook: "NoSQL = DynamoDB.",
+  },
+  "bill-consolidated": {
+    whyCorrect:
+      "Consolidated billing combines usage across accounts, which enables volume discounts.",
+    whyWrong: {
+      A: "Separate invoices reduce consolidation benefits.",
+      B: "Credentials should not be shared across accounts.",
+      D: "Consolidated billing supports automated allocation beyond manual methods.",
+    },
+    memoryHook: "Consolidated billing = volume discounts.",
+  },
+  "cc-economies-scale": {
+    whyCorrect:
+      "Economies of scale lower per-unit costs when demand is aggregated across many customers.",
+    whyWrong: {
+      A: "Economies of scale reduce, not increase, upfront costs.",
+      C: "Manual management is not a benefit of scale.",
+      D: "Dedicated hardware per customer reduces scale efficiency.",
+    },
+    memoryHook: "Scale = lower unit cost.",
+  },
+  "cc-global-infra": {
+    whyCorrect:
+      "Global infrastructure lets you deploy closer to users to reduce latency.",
+    whyWrong: {
+      A: "Global infrastructure enables multi-region, not single-region only.",
+      C: "Traffic routing is automated through AWS services, not manual by default.",
+      D: "Global infrastructure reduces, not increases, on-prem costs.",
+    },
+    memoryHook: "Global = closer to users.",
+  },
+  "sec-config": {
+    whyCorrect:
+      "AWS Config evaluates resource configurations against rules for compliance.",
+    whyWrong: {
+      B: "AWS Shield is DDoS protection, not configuration compliance.",
+      C: "GuardDuty detects threats, not configuration compliance.",
+      D: "Artifact provides compliance reports, not configuration evaluation.",
+    },
+    memoryHook: "Config = compliance rules.",
+  },
+  "sec-guardduty": {
+    whyCorrect:
+      "Amazon GuardDuty analyzes logs to detect suspicious or malicious activity.",
+    whyWrong: {
+      A: "Inspector focuses on vulnerabilities, not threat detection.",
+      C: "AWS Config checks configuration compliance, not threats.",
+      D: "Trusted Advisor provides recommendations, not threat detection.",
+    },
+    memoryHook: "Threat detection = GuardDuty.",
+  },
+  "sec-encryption-transit": {
+    whyCorrect:
+      "Encryption in transit protects data as it moves between systems over a network.",
+    whyWrong: {
+      A: "Stored data is protected by encryption at rest.",
+      C: "IAM permissions are access control, not data-in-transit protection.",
+      D: "Encryption in transit applies broadly, not only to billing data.",
+    },
+    memoryHook: "In transit = data moving.",
+  },
+  "tech-ami": {
+    whyCorrect:
+      "An AMI is a template used to launch EC2 instances with predefined configurations.",
+    whyWrong: {
+      A: "Object storage is handled by S3, not AMIs.",
+      C: "IAM user management is separate from AMIs.",
+      D: "Monitoring metrics is handled by CloudWatch, not AMIs.",
+    },
+    memoryHook: "AMI = EC2 template.",
+  },
+  "bill-on-demand": {
+    whyCorrect:
+      "On-Demand pricing charges only for actual usage without long-term commitments.",
+    whyWrong: {
+      A: "On-Demand does not require long-term commitments.",
+      C: "On-Demand is flexible, but not always the lowest cost.",
+      D: "Interruptible capacity is a Spot characteristic, not On-Demand.",
+    },
+    memoryHook: "On-Demand = pay per use.",
+  },
+  "bill-reserved": {
+    whyCorrect:
+      "Reserved Instances provide significant cost savings for steady, predictable usage.",
+    whyWrong: {
+      A: "Reserved Instances require a commitment.",
+      C: "Interruptible pricing is a Spot characteristic, not Reserved Instances.",
+      D: "Reserved Instances apply to compute usage, not only storage.",
+    },
+    memoryHook: "RI = steady usage savings.",
+  },
+  "cc-well-architected": {
+    whyCorrect:
+      "The AWS Well-Architected Framework provides best practices for secure, high-performing workloads.",
+    whyWrong: {
+      A: "Trusted Advisor gives recommendations but is not the formal framework.",
+      C: "Service Health Dashboard reports outages, not best practices.",
+      D: "Organizations is governance, not architecture guidance.",
+    },
+    memoryHook: "Best practices = Well-Architected.",
+  },
+  "cc-design-tradeoffs": {
+    whyCorrect:
+      "Designing for failure means assuming components will fail and building fault tolerance.",
+    whyWrong: {
+      A: "Larger instances do not eliminate failure risk.",
+      C: "Manual recovery alone is not fault-tolerant design.",
+      D: "Single-AZ deployments increase failure risk.",
+    },
+    memoryHook: "Assume failure; design for it.",
+  },
+  "sec-iam-evaluation": {
+    whyCorrect:
+      "In IAM policy evaluation, an explicit deny always overrides an allow.",
+    whyWrong: {
+      A: "Allow never overrides an explicit deny.",
+      B: "Policy order does not override explicit deny.",
+      D: "IAM does not average policies.",
+    },
+    memoryHook: "Explicit deny wins.",
+  },
+  "sec-root-usage": {
+    whyCorrect:
+      "Root is intended for account-level tasks such as changing support plans or account settings.",
+    whyWrong: {
+      A: "Launching EC2 is routine and should be done with IAM users or roles.",
+      B: "Daily IAM management should not use the root user.",
+      D: "Managing S3 is a routine task and should not use root.",
+    },
+    memoryHook: "Root = account setup only.",
+  },
+  "tech-ec2-ebs": {
+    whyCorrect:
+      "Instance store data is ephemeral and is lost when the instance stops.",
+    whyWrong: {
+      A: "Instance store does not persist after stop.",
+      C: "Instance store is not automatically backed up to S3.",
+      D: "Instance store data does not move to EBS automatically.",
+    },
+    memoryHook: "Instance store = temporary.",
+  },
+  "tech-rds-backups": {
+    whyCorrect:
+      "Automated RDS backups are enabled when the backup retention period is greater than zero.",
+    whyWrong: {
+      A: "Multi-AZ improves availability but does not enable backups.",
+      C: "Read replicas are for scaling reads, not enabling backups.",
+      D: "Disabling encryption is unrelated to automated backups.",
+    },
+    memoryHook: "Backups = retention > 0.",
+  },
+  "bill-data-transfer": {
+    whyCorrect:
+      "Inbound data transfer into AWS from the internet is typically free.",
+    whyWrong: {
+      A: "Inter-Region transfer usually has charges.",
+      B: "Data transfer out to the internet typically incurs charges.",
+      D: "Direct Connect data transfer is not generally free.",
+    },
+    memoryHook: "Data in = free.",
+  },
+  "bill-multi-account": {
+    whyCorrect:
+      "Multiple accounts improve isolation and simplify cost tracking and chargeback.",
+    whyWrong: {
+      A: "Accounts are not meant to bypass service limits.",
+      C: "Sharing root credentials is a security anti-pattern.",
+      D: "Multiple accounts still rely on IAM.",
+    },
+    memoryHook: "Accounts = isolation + cost clarity.",
+  },
+  "hard-bill-org-01": {
+    whyCorrect:
+      "Consolidated billing provides volume discounts, and cost allocation tags let teams track their own spend.",
+    whyWrong: {
+      A: "Separate invoices lose consolidation benefits.",
+      C: "Budgets provide alerts but not allocation visibility.",
+      D: "Cost Explorer forecasts costs but does not allocate or reduce them.",
+    },
+    memoryHook: "Organizations + tags = savings + visibility.",
+  },
+  "hard-sec-iam-01": {
+    whyCorrect:
+      "AWS Config rules can evaluate resource configurations for compliance, including encryption requirements.",
+    whyWrong: {
+      A: "Permission boundaries limit permissions, not configuration compliance.",
+      C: "Shield Advanced is for DDoS protection, not encryption enforcement.",
+      D: "GuardDuty detects threats, not configuration compliance.",
+    },
+    memoryHook: "Config rules = enforce compliance.",
+  },
+  "hard-tech-ha-01": {
+    whyCorrect:
+      "Multi-AZ architecture distributes resources across Availability Zones for high availability.",
+    whyWrong: {
+      A: "Vertical scaling increases size, not fault tolerance.",
+      B: "Single-instance deployments create a single point of failure.",
+      D: "Reserved Instances reduce cost, not improve availability.",
+    },
+    memoryHook: "AZ failure tolerance = Multi-AZ.",
+  },
+  "hard-bill-ri-02": {
+    whyCorrect:
+      "Reserved Instances offer the largest savings for steady, predictable workloads over a long period.",
+    whyWrong: {
+      A: "On-Demand is flexible but more expensive for steady use.",
+      B: "Spot instances can be interrupted and are not ideal for steady workloads.",
+      D: "Savings Plans require a commitment; a no-commitment option offers no discount.",
+    },
+    memoryHook: "Steady year = Reserved Instances.",
+  },
+  "hard-cloud-global-02": {
+    whyCorrect:
+      "Availability Zones are separate locations within a Region used for fault isolation.",
+    whyWrong: {
+      A: "Regions provide geographic isolation, not intra-region fault isolation.",
+      C: "Edge locations are for content delivery, not fault isolation inside a Region.",
+      D: "Local Zones extend Regions but are not the primary fault isolation units.",
+    },
+    memoryHook: "Inside a Region = AZs.",
+  },
+  "hard-tech-serverless-02": {
+    whyCorrect:
+      "AWS Lambda runs code without provisioning or managing servers.",
+    whyWrong: {
+      A: "EC2 requires you to manage servers.",
+      C: "ECS on EC2 still requires server management.",
+      D: "Elastic Beanstalk uses EC2 under the hood.",
+    },
+    memoryHook: "Serverless code = Lambda.",
+  },
+  "hard-sec-data-02": {
+    whyCorrect:
+      "AWS Macie discovers and helps protect sensitive data stored in S3.",
+    whyWrong: {
+      B: "Shield protects against DDoS attacks, not data classification.",
+      C: "GuardDuty detects threats, not sensitive data classification.",
+      D: "WAF protects web applications, not S3 data classification.",
+    },
+    memoryHook: "PII in S3 = Macie.",
+  },
+};
+
+const EXTRA_QUESTIONS: Question[] = [
+  {
+    id: "clf-071",
+    domain: "Cloud Concepts",
+    difficulty: "Medium",
+    prompt: "Which statement best describes the AWS Shared Responsibility Model?",
+    choices: [
+      {
+        id: "A",
+        text:
+          "AWS is responsible for security in the cloud, and the customer is responsible for security of the cloud.",
+      },
+      {
+        id: "B",
+        text: "AWS and the customer always share every security task equally.",
+      },
+      {
+        id: "C",
+        text:
+          "AWS is responsible for security of the cloud, and the customer is responsible for security in the cloud.",
+      },
+      {
+        id: "D",
+        text: "The customer is responsible for physical security of AWS data centers.",
+      },
+    ],
+    answerId: "C",
+    explanation:
+      "AWS secures the underlying infrastructure (security of the cloud). Customers secure what they build and configure (security in the cloud).",
+    whyCorrect:
+      "The Shared Responsibility Model splits responsibilities: AWS handles the infrastructure layers (facilities, hardware, virtualization), while customers manage configuration, identity, data protection, and application-level controls depending on the services used.",
+    whyWrong: {
+      A: "This reverses the model. Customers do not secure the underlying AWS infrastructure layers.",
+      B: "Responsibilities vary by service model (IaaS vs PaaS vs SaaS); tasks are not always equal.",
+      D: "Physical data center security is AWS’s responsibility, not the customer’s.",
+    },
+    coaching:
+      "Exam rule: **AWS = security OF the cloud; You = security IN the cloud.** Trap: answers that flip those two phrases are almost always wrong.",
+    memoryHook: "OF = AWS’s roof; IN = your stuff inside.",
+    testedConcepts: [
+      "Shared Responsibility Model",
+      "IaaS vs PaaS vs SaaS responsibility boundaries",
+    ],
+    sources: [
+      {
+        title: "Shared Responsibility Model (AWS)",
+        url: "https://aws.amazon.com/compliance/shared-responsibility-model/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-072",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "A workload runs continuously and uses consistent compute capacity. Which pricing option typically provides the lowest cost while still allowing flexibility across compute services?",
+    choices: [
+      { id: "A", text: "On-Demand Instances" },
+      { id: "B", text: "Spot Instances" },
+      { id: "C", text: "Compute Savings Plans" },
+      { id: "D", text: "Dedicated Hosts" },
+    ],
+    answerId: "C",
+    explanation:
+      "Compute Savings Plans offer discounted pricing for a committed spend, applying across EC2 instance families, AWS Fargate, and Lambda (subject to plan terms).",
+    whyCorrect:
+      "Compute Savings Plans generally provide strong discounts for steady usage and are more flexible than Reserved Instances because they apply across instance families/regions (within the plan) and also cover Fargate/Lambda.",
+    whyWrong: {
+      A: "On-Demand is flexible but usually more expensive for steady, predictable usage.",
+      B: "Spot can be cheapest but is interruptible; not ideal for continuous guaranteed capacity without interruption tolerance.",
+      D: "Dedicated Hosts are for compliance/licensing needs and are typically not the lowest-cost option.",
+    },
+    coaching:
+      "Keyword spotting: **steady, always-on** → look for **Savings Plans/Reserved**. Trap: **Spot** is cheap but interruptible; don’t pick it unless the question says “fault-tolerant/interruptible.”",
+    memoryHook: "Steady spend → Savings Plan.",
+    testedConcepts: ["Savings Plans vs Reserved Instances", "Spot interruptibility", "Pricing models"],
+    sources: [{ title: "Savings Plans (AWS)", url: "https://aws.amazon.com/savingsplans/" }],
+    verified: true,
+  },
+  {
+    id: "clf-073",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service is primarily used to distribute incoming application traffic across multiple targets such as EC2 instances?",
+    choices: [
+      { id: "A", text: "Amazon Route 53" },
+      { id: "B", text: "Elastic Load Balancing (ELB)" },
+      { id: "C", text: "Amazon CloudFront" },
+      { id: "D", text: "AWS Direct Connect" },
+    ],
+    answerId: "B",
+    explanation:
+      "Elastic Load Balancing distributes incoming traffic across multiple targets (for example, EC2 instances, containers, IPs).",
+    whyCorrect:
+      "ELB is designed to balance traffic across targets to improve availability and fault tolerance at the application layer.",
+    whyWrong: {
+      A: "Route 53 is DNS (name resolution/traffic routing at the DNS level), not an in-path load balancer.",
+      C: "CloudFront is a CDN for caching and edge delivery; it’s not the primary L7/L4 load balancer for targets.",
+      D: "Direct Connect is a dedicated network connection from on-prem to AWS; it doesn’t distribute application traffic.",
+    },
+    coaching:
+      "Exam shortcut: **“distribute traffic across EC2/targets” = ELB.** Trap: Route 53 routes at DNS, CloudFront caches at edge—neither is a classic load balancer.",
+    memoryHook: "ELB = balances live requests.",
+    testedConcepts: ["Load balancing", "High availability", "Networking basics"],
+    sources: [
+      {
+        title: "Elastic Load Balancing (AWS)",
+        url: "https://aws.amazon.com/elasticloadbalancing/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-074",
+    domain: "Security",
+    difficulty: "Hard",
+    prompt:
+      "A company needs to centrally manage permissions across many AWS accounts using roles and permission sets. Which AWS service is designed for this?",
+    choices: [
+      { id: "A", text: "AWS Identity and Access Management (IAM) users in each account" },
+      { id: "B", text: "AWS IAM Identity Center (AWS Single Sign-On)" },
+      { id: "C", text: "Amazon Cognito user pools" },
+      { id: "D", text: "AWS Key Management Service (KMS)" },
+    ],
+    answerId: "B",
+    explanation:
+      "IAM Identity Center centralizes workforce access to multiple AWS accounts with permission sets and role-based access.",
+    whyCorrect:
+      "IAM Identity Center is purpose-built to manage workforce access across AWS Organizations accounts using permission sets that map to roles in each account.",
+    whyWrong: {
+      A: "Managing IAM users separately in each account is not centralized and doesn’t scale well.",
+      C: "Cognito is for app end-user authentication, not workforce access across AWS accounts.",
+      D: "KMS manages encryption keys; it is not an identity/permission management solution.",
+    },
+    coaching:
+      "If you see **“central access across many AWS accounts”** and **permission sets**, the answer is **IAM Identity Center**. Trap: Cognito = app users; IAM users per account = not centralized.",
+    memoryHook: "Workforce SSO = Identity Center.",
+    testedConcepts: [
+      "Workforce identity",
+      "Organizations multi-account access",
+      "Permission sets vs IAM users",
+    ],
+    sources: [
+      {
+        title: "IAM Identity Center (AWS)",
+        url: "https://aws.amazon.com/iam/identity-center/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-075",
+    domain: "Billing & Pricing",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS tool is best for visualizing historical spend trends and filtering costs by service over time?",
+    choices: [
+      { id: "A", text: "AWS Budgets" },
+      { id: "B", text: "AWS Cost Explorer" },
+      { id: "C", text: "AWS CloudTrail" },
+      { id: "D", text: "Amazon CloudWatch" },
+    ],
+    answerId: "B",
+    explanation:
+      "Cost Explorer provides dashboards to analyze and visualize historical AWS costs and usage.",
+    whyCorrect:
+      "Cost Explorer is designed for interactive cost analysis: trends, filters, groupings, and time-based exploration.",
+    whyWrong: {
+      A: "Budgets is for thresholds and alerts; it’s not the primary interactive spend exploration tool.",
+      C: "CloudTrail records API calls for auditing, not cost analysis.",
+      D: "CloudWatch is monitoring/metrics/logs, not cost analytics.",
+    },
+    coaching:
+      "Keyword: **visualize / trends / over time** → **Cost Explorer**. Keyword: **alerts / thresholds** → **Budgets**.",
+    memoryHook: "Explorer = explore spend; Budgets = alerts.",
+    testedConcepts: ["Cost Explorer vs Budgets", "Cost management tools"],
+    sources: [
+      {
+        title: "AWS Cost Explorer (AWS)",
+        url: "https://aws.amazon.com/aws-cost-management/aws-cost-explorer/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-076",
+    domain: "Technology",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS service provides a managed container orchestration platform for running and scaling containers without managing control plane servers?",
+    choices: [
+      { id: "A", text: "Amazon ECS with AWS Fargate" },
+      { id: "B", text: "Amazon EC2 Auto Scaling" },
+      { id: "C", text: "Amazon S3" },
+      { id: "D", text: "AWS Storage Gateway" },
+    ],
+    answerId: "A",
+    explanation:
+      "ECS is a container orchestrator; Fargate removes the need to manage servers for container workloads.",
+    whyCorrect:
+      "ECS + Fargate lets you run containers with orchestration while AWS manages the underlying compute (no server management for the customer).",
+    whyWrong: {
+      B: "Auto Scaling scales EC2 capacity but does not provide container orchestration by itself.",
+      C: "S3 is object storage, not compute/orchestration.",
+      D: "Storage Gateway connects on-prem to AWS storage; unrelated to containers.",
+    },
+    coaching:
+      "Look for phrasing like **“containers + no servers to manage”** → **Fargate** (with ECS/EKS). Trap: Auto Scaling scales servers, not container scheduling.",
+    memoryHook: "Fargate = ‘no servers’ containers.",
+    testedConcepts: ["Containers", "Serverless containers", "ECS/Fargate basics"],
+    sources: [{ title: "AWS Fargate (AWS)", url: "https://aws.amazon.com/fargate/" }],
+    verified: true,
+  },
+  {
+    id: "clf-077",
+    domain: "Cloud Concepts",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS design principle supports fault tolerance by running resources in physically separate locations within a Region?",
+    choices: [
+      { id: "A", text: "Using multiple AWS Regions for every workload" },
+      { id: "B", text: "Deploying across multiple Availability Zones" },
+      { id: "C", text: "Using edge locations for compute" },
+      { id: "D", text: "Storing objects in a single S3 bucket" },
+    ],
+    answerId: "B",
+    explanation:
+      "Availability Zones are isolated locations within a Region. Spreading across multiple AZs improves resilience.",
+    whyCorrect:
+      "Multi-AZ architectures reduce single points of failure because AZs are physically separated and independently powered/cooled.",
+    whyWrong: {
+      A: "Multi-Region can increase resilience but is not required by the question (it asks within a Region).",
+      C: "Edge locations are for content delivery and some edge compute; not the primary “within a Region” fault tolerance approach.",
+      D: "A single bucket doesn’t imply resilience strategy; resilience depends on architecture and service features.",
+    },
+    coaching:
+      "If the question says **“within a Region”** and **physically separate**, think **Availability Zones**. Trap: Multi-Region is bigger scope than asked.",
+    memoryHook: "Region contains AZs.",
+    testedConcepts: ["Regions vs AZs", "High availability design"],
+    sources: [
+      {
+        title: "Regions and Availability Zones (AWS)",
+        url: "https://aws.amazon.com/about-aws/global-infrastructure/regions_az/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-078",
+    domain: "Security",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service helps protect web applications from common web exploits such as SQL injection and cross-site scripting (XSS)?",
+    choices: [
+      { id: "A", text: "AWS WAF" },
+      { id: "B", text: "AWS Shield Standard" },
+      { id: "C", text: "Amazon GuardDuty" },
+      { id: "D", text: "AWS Key Management Service (KMS)" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS WAF is a web application firewall that helps block common web exploits (SQLi, XSS) using rules.",
+    whyCorrect:
+      "WAF is designed to filter and monitor HTTP(S) requests to protect web apps from common layer-7 attacks.",
+    whyWrong: {
+      B: "Shield is primarily DDoS protection; it doesn’t focus on SQLi/XSS rules for web apps.",
+      C: "GuardDuty detects threats from logs/events; it doesn’t block web exploits at the request layer.",
+      D: "KMS manages encryption keys; unrelated to web request filtering.",
+    },
+    coaching:
+      "Keyword: **SQLi / XSS / web requests** → **WAF**. Trap: Shield = DDoS; GuardDuty = detection; WAF = request filtering.",
+    memoryHook: "WAF = Web App Firewall.",
+    testedConcepts: ["WAF vs Shield vs GuardDuty", "Layer-7 protections"],
+    sources: [{ title: "AWS WAF (AWS)", url: "https://aws.amazon.com/waf/" }],
+    verified: true,
+  },
+  {
+    id: "clf-079",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "A company wants to reduce overall costs using AWS Organizations while still letting each team view and track their own spend. What is the best approach?",
+    choices: [
+      { id: "A", text: "Create separate invoices for each AWS account" },
+      { id: "B", text: "Enable consolidated billing and use cost allocation tags" },
+      { id: "C", text: "Use AWS CloudTrail to track spending by account" },
+      { id: "D", text: "Use Amazon CloudWatch dashboards for billing" },
+    ],
+    answerId: "B",
+    explanation:
+      "Organizations consolidated billing can aggregate usage for discounts, while cost allocation tags help attribute costs to teams/projects.",
+    whyCorrect:
+      "Consolidated billing helps optimize overall costs and visibility across accounts; tags (and cost categories) enable chargeback/showback to teams.",
+    whyWrong: {
+      A: "Separate invoices removes consolidated billing benefits and isn’t the best cost-optimization strategy here.",
+      C: "CloudTrail logs API calls, not billing attribution.",
+      D: "CloudWatch is operational monitoring; it’s not the primary billing attribution tool.",
+    },
+    coaching:
+      "Pattern: **Organizations + reduce cost + team visibility** → **Consolidated billing + tags**. Trap: CloudTrail/CloudWatch are not billing tools.",
+    memoryHook: "Consolidate to save; tag to attribute.",
+    testedConcepts: ["Organizations consolidated billing", "Cost allocation tags"],
+    sources: [
+      {
+        title: "AWS Organizations Consolidated Billing (AWS)",
+        url: "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-080",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service is primarily used to record and audit AWS API calls for governance, compliance, and operational troubleshooting?",
+    choices: [
+      { id: "A", text: "Amazon CloudWatch" },
+      { id: "B", text: "AWS CloudTrail" },
+      { id: "C", text: "AWS Trusted Advisor" },
+      { id: "D", text: "AWS Config" },
+    ],
+    answerId: "B",
+    explanation: "CloudTrail records account activity by logging AWS API calls and events.",
+    whyCorrect:
+      "CloudTrail is the source of truth for ‘who did what, when, from where’ in AWS via API event logs.",
+    whyWrong: {
+      A: "CloudWatch monitors metrics/logs/alarms; it’s not the primary audit log of AWS API activity.",
+      C: "Trusted Advisor provides recommendations; it doesn’t log API calls.",
+      D: "Config records resource configuration changes and compliance state; it is not the full API call audit trail.",
+    },
+    coaching:
+      "Keyword: **audit API calls** / **who changed what** → **CloudTrail**. Trap: Config = configuration history; CloudTrail = API event history.",
+    memoryHook: "Trail = breadcrumb trail of API calls.",
+    testedConcepts: ["CloudTrail vs Config vs CloudWatch", "Auditing and governance"],
+    sources: [{ title: "AWS CloudTrail (AWS)", url: "https://aws.amazon.com/cloudtrail/" }],
+    verified: true,
+  },
+  {
+    id: "clf-081",
+    domain: "Cloud Concepts",
+    difficulty: "Hard",
+    prompt: "Which statement best describes the main benefit of elasticity in the AWS Cloud?",
+    choices: [
+      {
+        id: "A",
+        text:
+          "You can permanently reserve the same amount of capacity for the lowest price.",
+      },
+      {
+        id: "B",
+        text: "You can automatically scale resources up and down to match demand.",
+      },
+      {
+        id: "C",
+        text: "You can eliminate all security responsibilities by using AWS.",
+      },
+      {
+        id: "D",
+        text: "You can deploy workloads only in one AWS Region to reduce latency.",
+      },
+    ],
+    answerId: "B",
+    explanation:
+      "Elasticity is the ability to dynamically adjust resources based on current workload demand.",
+    whyCorrect:
+      "Elasticity enables scaling out/in (or up/down) so you run the right amount of resources at the right time, improving cost-efficiency and performance during variable demand.",
+    whyWrong: {
+      A: "That describes capacity reservation/commitments (like RIs/Savings Plans), not elasticity.",
+      C: "Shared Responsibility still applies; AWS does not eliminate all customer security responsibilities.",
+      D: "Region choice can impact latency, but elasticity is about resource scaling with demand.",
+    },
+    coaching:
+      "Keyword: **elasticity = match demand automatically**. Trap: commitments (RIs/Savings Plans) are cost tools, not elasticity.",
+    memoryHook: "Elastic = stretches with demand.",
+    testedConcepts: ["Elasticity vs scalability", "Cloud value proposition"],
+    sources: [
+      {
+        title: "AWS Cloud Benefits (Elasticity/Scalability)",
+        url: "https://aws.amazon.com/what-is-cloud-computing/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-082",
+    domain: "Billing & Pricing",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS feature in a consolidated billing setup allows charges to be assigned to teams or projects for showback/chargeback?",
+    choices: [
+      { id: "A", text: "Cost allocation tags" },
+      { id: "B", text: "Security groups" },
+      { id: "C", text: "IAM policies" },
+      { id: "D", text: "Amazon VPC route tables" },
+    ],
+    answerId: "A",
+    explanation:
+      "Cost allocation tags help categorize and track AWS costs by key/value metadata (e.g., team, project, environment).",
+    whyCorrect:
+      "Cost allocation tags are designed to attribute spend to owners (teams/projects/apps) so you can allocate costs and build chargeback models.",
+    whyWrong: {
+      B: "Security groups control network access, not cost attribution.",
+      C: "IAM policies control permissions, not billing allocation.",
+      D: "Route tables control traffic routing, not cost tracking.",
+    },
+    coaching:
+      "If it’s **who owns the cost** → **tags** (and cost categories). Trap: IAM/security groups are control-plane, not billing attribution.",
+    memoryHook: "Tag it to track it.",
+    testedConcepts: ["Cost allocation tags", "Chargeback/showback"],
+    sources: [
+      {
+        title: "AWS Cost Allocation Tags (Docs)",
+        url: "https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-083",
+    domain: "Security",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS service can help you detect potentially compromised EC2 instances by analyzing VPC Flow Logs, DNS logs, and CloudTrail events?",
+    choices: [
+      { id: "A", text: "Amazon GuardDuty" },
+      { id: "B", text: "AWS WAF" },
+      { id: "C", text: "AWS Trusted Advisor" },
+      { id: "D", text: "AWS Shield Advanced" },
+    ],
+    answerId: "A",
+    explanation:
+      "GuardDuty is a threat detection service that analyzes multiple log sources to identify suspicious activity.",
+    whyCorrect:
+      "GuardDuty continuously monitors for malicious activity using signals like CloudTrail, VPC Flow Logs, and DNS logs, and produces findings for investigation.",
+    whyWrong: {
+      B: "WAF filters web requests; it does not analyze account/network logs for threat detection across services.",
+      C: "Trusted Advisor provides best-practice checks; it is not a threat detection engine.",
+      D: "Shield Advanced focuses on DDoS protection, not general threat detection from log analysis.",
+    },
+    coaching:
+      "Keyword: **detect threats from logs** → **GuardDuty**. Trap: WAF/Shield protect traffic; GuardDuty detects suspicious behavior.",
+    memoryHook: "GuardDuty = ‘guard on duty’ watching logs.",
+    testedConcepts: ["Threat detection", "GuardDuty log sources", "Security services differences"],
+    sources: [{ title: "Amazon GuardDuty (AWS)", url: "https://aws.amazon.com/guardduty/" }],
+    verified: true,
+  },
+  {
+    id: "clf-084",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service provides a fully managed NoSQL database designed for single-digit millisecond performance at any scale?",
+    choices: [
+      { id: "A", text: "Amazon RDS" },
+      { id: "B", text: "Amazon DynamoDB" },
+      { id: "C", text: "Amazon Redshift" },
+      { id: "D", text: "Amazon Aurora" },
+    ],
+    answerId: "B",
+    explanation:
+      "DynamoDB is a managed NoSQL key-value and document database built for low-latency performance at scale.",
+    whyCorrect:
+      "DynamoDB is purpose-built for high scale and low latency without managing servers, making it the classic AWS managed NoSQL choice.",
+    whyWrong: {
+      A: "RDS is managed relational (SQL) databases, not NoSQL.",
+      C: "Redshift is a data warehouse for analytics, not low-latency NoSQL workloads.",
+      D: "Aurora is a relational database (MySQL/PostgreSQL compatible), not NoSQL.",
+    },
+    coaching:
+      "Keyword: **NoSQL + low latency at scale** → **DynamoDB**. Trap: Aurora/RDS are SQL; Redshift is analytics.",
+    memoryHook: "DynamoDB = NoSQL speed.",
+    testedConcepts: ["Database types", "NoSQL vs SQL", "Managed services"],
+    sources: [{ title: "Amazon DynamoDB (AWS)", url: "https://aws.amazon.com/dynamodb/" }],
+    verified: true,
+  },
+  {
+    id: "clf-085",
+    domain: "Cloud Concepts",
+    difficulty: "Medium",
+    prompt:
+      "A startup runs a production workload across multiple accounts and asks for a dedicated Technical Account Manager to help with architecture reviews and proactive guidance. Which AWS Support plan should they choose? (Trap keyword: cross-Region)",
+    choices: [
+      { id: "A", text: "Business Support with cross-Region routing" },
+      { id: "B", text: "Developer Support with inter-AZ optimization" },
+      { id: "C", text: "Basic Support with Trusted Advisor Core Checks" },
+      { id: "D", text: "Enterprise Support with a Technical Account Manager (TAM)" },
+    ],
+    answerId: "D",
+    explanation:
+      "Enterprise Support includes a Technical Account Manager (TAM) and proactive guidance.",
+    whyCorrect:
+      "Enterprise Support is the only plan that provides a Technical Account Manager for proactive, account-level guidance and ongoing architectural engagement.",
+    whyWrong: {
+      A: "Business Support improves response times and guidance but does not include a dedicated TAM; 'cross-Region' is a networking trap.",
+      B: "Developer Support is limited in scope and does not include a TAM; 'inter-AZ' is a misleading keyword.",
+      C: "Basic Support offers self-service and limited checks; it does not provide a TAM or proactive engagement.",
+    },
+    coaching:
+      "Rule: **TAM = Enterprise**. Trap: keywords like **cross-Region** or **inter-AZ** are networking topics, not support plan features. Spot the request for a *dedicated* advisor.",
+    memoryHook: "TAM sits at the Enterprise tier.",
+    testedConcepts: ["AWS Support plans", "TAM availability"],
+    sources: [
+      { title: "AWS Support Plans (AWS)", url: "https://aws.amazon.com/premiumsupport/plans/" },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-086",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "Which pricing model is best suited for workloads that can tolerate interruptions and need the lowest possible compute cost?",
+    choices: [
+      { id: "A", text: "On-Demand Instances" },
+      { id: "B", text: "Reserved Instances" },
+      { id: "C", text: "Spot Instances" },
+      { id: "D", text: "Dedicated Instances" },
+    ],
+    answerId: "C",
+    explanation:
+      "Spot Instances can provide steep discounts but may be interrupted when AWS needs the capacity back.",
+    whyCorrect:
+      "Spot is designed for flexible, fault-tolerant workloads and typically offers the lowest compute prices compared to On-Demand and Reserved options.",
+    whyWrong: {
+      A: "On-Demand is flexible but usually costs more than Spot.",
+      B: "Reserved reduces cost for steady usage, but is not the cheapest option for interruptible workloads.",
+      D: "Dedicated Instances isolate hardware but are not a cost-minimizing option.",
+    },
+    coaching:
+      "Keyword: **interruptible / fault-tolerant + cheapest** → **Spot**. Trap: If the question says ‘must not be interrupted’, Spot is wrong.",
+    memoryHook: "Spot = spare capacity bargains.",
+    testedConcepts: ["Spot vs On-Demand vs Reserved", "Interruptible workloads"],
+    sources: [{ title: "Amazon EC2 Spot Instances (AWS)", url: "https://aws.amazon.com/ec2/spot/" }],
+    verified: true,
+  },
+  {
+    id: "clf-087",
+    domain: "Technology",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS service provides a managed way to create and enforce rules that evaluate AWS resource configurations for compliance?",
+    choices: [
+      { id: "A", text: "AWS Config" },
+      { id: "B", text: "AWS CloudTrail" },
+      { id: "C", text: "Amazon CloudWatch" },
+      { id: "D", text: "AWS Budgets" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS Config tracks resource configuration changes and can evaluate them against rules for compliance.",
+    whyCorrect:
+      "Config provides configuration history, change tracking, and compliance evaluation through Config rules—exactly matching governance/compliance validation needs.",
+    whyWrong: {
+      B: "CloudTrail logs API events (‘who did what’), not configuration compliance rules.",
+      C: "CloudWatch is metrics/logs/alarms, not configuration compliance evaluation.",
+      D: "Budgets is cost alerting, not compliance enforcement.",
+    },
+    coaching:
+      "Keyword: **resource configuration + compliance rules** → **AWS Config**. Trap: CloudTrail = audit trail of actions, not compliance rules.",
+    memoryHook: "Config = configuration compliance.",
+    testedConcepts: ["CloudTrail vs Config", "Compliance and governance"],
+    sources: [{ title: "AWS Config (AWS)", url: "https://aws.amazon.com/config/" }],
+    verified: true,
+  },
+  {
+    id: "clf-088",
+    domain: "Security",
+    difficulty: "Medium",
+    prompt: "Which AWS service is used to create, manage, and control encryption keys used to encrypt data?",
+    choices: [
+      { id: "A", text: "AWS Key Management Service (KMS)" },
+      { id: "B", text: "Amazon Inspector" },
+      { id: "C", text: "AWS Artifact" },
+      { id: "D", text: "AWS Organizations" },
+    ],
+    answerId: "A",
+    explanation:
+      "KMS is the managed service for creating and controlling cryptographic keys used across AWS services.",
+    whyCorrect:
+      "KMS centrally manages encryption keys and integrates with many AWS services for encryption at rest and key usage control.",
+    whyWrong: {
+      B: "Inspector scans for vulnerabilities; it does not manage encryption keys.",
+      C: "Artifact provides compliance reports and agreements; not key management.",
+      D: "Organizations manages multiple accounts; not encryption keys.",
+    },
+    coaching:
+      "Keyword: **encryption keys** → **KMS**. Trap: ‘security’ options like Inspector/Artifact are common distractors but don’t manage keys.",
+    memoryHook: "KMS = Key Management Service.",
+    testedConcepts: ["Encryption at rest", "Key management"],
+    sources: [{ title: "AWS KMS (AWS)", url: "https://aws.amazon.com/kms/" }],
+    verified: true,
+  },
+  {
+    id: "clf-089",
+    domain: "Cloud Concepts",
+    difficulty: "Hard",
+    prompt:
+      "A company wants to improve reliability by removing single points of failure in its architecture. Which approach best aligns with AWS best practices?",
+    choices: [
+      {
+        id: "A",
+        text:
+          "Deploy all resources into a single Availability Zone to reduce complexity.",
+      },
+      {
+        id: "B",
+        text:
+          "Use multiple Availability Zones and implement health checks with automatic failover.",
+      },
+      { id: "C", text: "Use a single, larger EC2 instance instead of multiple smaller instances." },
+      {
+        id: "D",
+        text:
+          "Store backups only on local disk attached to an EC2 instance.",
+      },
+    ],
+    answerId: "B",
+    explanation:
+      "Multi-AZ deployment and automated failover improve availability and reduce single points of failure.",
+    whyCorrect:
+      "AWS Well-Architected reliability guidance emphasizes redundancy, fault isolation, and automated recovery—multi-AZ plus health checks is a classic pattern.",
+    whyWrong: {
+      A: "Single AZ increases risk; it creates a single point of failure.",
+      C: "A single bigger instance can still fail and becomes a single point of failure.",
+      D: "Local disk is not durable like managed storage; backups should use durable storage (e.g., S3) and multi-location strategies.",
+    },
+    coaching:
+      "Keyword: **single point of failure** → **redundancy + multi-AZ + automated recovery**. Trap: ‘bigger single server’ is the opposite of fault-tolerant design.",
+    memoryHook: "Multi-AZ = resilience.",
+    testedConcepts: ["High availability", "Fault tolerance", "Well-Architected Reliability"],
+    sources: [
+      {
+        title: "AWS Well-Architected Framework – Reliability Pillar",
+        url: "https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/welcome.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-090",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service is commonly used as highly durable object storage for backups, static assets, and data lakes?",
+    choices: [
+      { id: "A", text: "Amazon EBS" },
+      { id: "B", text: "Amazon S3" },
+      { id: "C", text: "Amazon EFS" },
+      { id: "D", text: "Amazon FSx for Windows File Server" },
+    ],
+    answerId: "B",
+    explanation:
+      "Amazon S3 is AWS’s object storage service designed for durability, scalability, and a wide range of storage use cases.",
+    whyCorrect:
+      "S3 is the standard AWS service for object storage—backups, static content, logs, and data lake storage are common use cases.",
+    whyWrong: {
+      A: "EBS is block storage for EC2; it’s not object storage and is tied to instances/AZs.",
+      C: "EFS is a shared file system (NFS) for Linux workloads, not object storage.",
+      D: "FSx is managed file storage, not object storage.",
+    },
+    coaching:
+      "Keyword: **object storage / backups / static assets** → **S3**. Trap: EBS/EFS/FSx are storage too, but they’re block/file, not object.",
+    memoryHook: "S3 = Simple Storage (object).",
+    testedConcepts: ["Storage types: object vs block vs file", "S3 use cases"],
+    sources: [{ title: "Amazon S3 (AWS)", url: "https://aws.amazon.com/s3/" }],
+    verified: true,
+  },
+  {
+    id: "VER-001",
+    domain: "Billing & Pricing",
+    difficulty: "Medium",
+    prompt:
+      "Your company runs steady compute usage across EC2, AWS Fargate, and AWS Lambda and wants cost savings without committing to specific instance families. Which option provides the best balance of savings and flexibility?",
+    choices: [
+      { id: "A", text: "Reserved Instances" },
+      { id: "B", text: "Spot Instances" },
+      { id: "C", text: "Compute Savings Plans" },
+      { id: "D", text: "Dedicated Hosts" },
+    ],
+    answerId: "C",
+    explanation:
+      "Compute Savings Plans provide flexible discounts across EC2, Fargate, and Lambda without tying you to instance families or regions.",
+    whyCorrect:
+      "Compute Savings Plans provide flexible discounts across EC2, Fargate, and Lambda without tying you to instance families or regions.",
+    whyWrong: {
+      A: "Reserved Instances are less flexible and tied to specific instance families or regions.",
+      B: "Spot Instances can be interrupted and are not ideal for steady workloads.",
+      D: "Dedicated Hosts focus on isolation and licensing, not cost optimization.",
+    },
+    coaching:
+      "Keyword rule: **steady usage + flexible across compute services** → **Compute Savings Plans**.",
+    sources: [{ title: "AWS Savings Plans", url: "https://aws.amazon.com/savingsplans/" }],
+    verified: true,
+  },
+  {
+    id: "VER-002",
+    domain: "Security",
+    difficulty: "Easy",
+    prompt:
+      "What is the AWS-recommended best practice for protecting the root user of an AWS account?",
+    choices: [
+      { id: "A", text: "Use the root user for daily administrative tasks" },
+      { id: "B", text: "Share root credentials with trusted administrators" },
+      { id: "C", text: "Enable MFA on the root account and restrict its use" },
+      { id: "D", text: "Create multiple root users" },
+    ],
+    answerId: "C",
+    explanation:
+      "The root user has unrestricted access. Enabling MFA and limiting its use is a core AWS security best practice.",
+    whyCorrect:
+      "The root user has unrestricted access. Enabling MFA and limiting its use is a core AWS security best practice.",
+    whyWrong: {
+      A: "Root should not be used for daily administration.",
+      B: "Root credentials should never be shared.",
+      D: "There is only one root user per AWS account.",
+    },
+    coaching:
+      "Security rule: **root = lock it down** → enable **MFA** and use it only when required.",
+    sources: [
+      {
+        title: "AWS IAM Best Practices",
+        url: "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "VER-003",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "You need a private, dedicated network connection from your on-premises data center to AWS with consistent latency. Which service should you use?",
+    choices: [
+      { id: "A", text: "AWS Site-to-Site VPN" },
+      { id: "B", text: "AWS Direct Connect" },
+      { id: "C", text: "Amazon CloudFront" },
+      { id: "D", text: "AWS PrivateLink" },
+    ],
+    answerId: "B",
+    explanation:
+      "AWS Direct Connect provides a dedicated private connection with predictable performance.",
+    whyCorrect:
+      "AWS Direct Connect provides a dedicated private connection with predictable performance.",
+    whyWrong: {
+      A: "VPN uses the public internet and has variable latency.",
+      C: "CloudFront is a CDN, not a connectivity service.",
+      D: "PrivateLink is for private access to AWS services, not on-prem connectivity.",
+    },
+    coaching:
+      "Keyword rule: **dedicated private connection + consistent latency** → **Direct Connect**.",
+    sources: [{ title: "AWS Direct Connect", url: "https://aws.amazon.com/directconnect/" }],
+    verified: true,
+  },
+  {
+    id: "VER-004",
+    domain: "Cloud Concepts",
+    difficulty: "Easy",
+    prompt:
+      "Which AWS Cloud benefit most directly enables faster innovation by reducing time to market?",
+    choices: [
+      { id: "A", text: "High availability" },
+      { id: "B", text: "Global infrastructure" },
+      { id: "C", text: "Managed services" },
+      { id: "D", text: "Pay-as-you-go pricing" },
+    ],
+    answerId: "C",
+    explanation:
+      "Managed services remove the burden of infrastructure management, allowing teams to focus on building and innovating faster.",
+    whyCorrect:
+      "Managed services remove the burden of infrastructure management, allowing teams to focus on building and innovating faster.",
+    whyWrong: {
+      A: "High availability improves reliability, not speed to market.",
+      B: "Global infrastructure improves reach, not development speed.",
+      D: "Pay-as-you-go affects cost, not innovation velocity.",
+    },
+    coaching:
+      "Think **less ops, more building** → **managed services** speed up delivery.",
+    sources: [
+      {
+        title: "Cloud Computing Benefits (AWS)",
+        url: "https://aws.amazon.com/what-is-cloud-computing/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "VER-005",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service is a fully managed relational database that automates backups, patching, and scaling?",
+    choices: [
+      { id: "A", text: "Amazon EC2 with MySQL installed" },
+      { id: "B", text: "Amazon RDS" },
+      { id: "C", text: "Amazon DynamoDB" },
+      { id: "D", text: "Amazon S3" },
+    ],
+    answerId: "B",
+    explanation:
+      "Amazon RDS is a fully managed relational database service handling backups, patching, and scaling.",
+    whyCorrect:
+      "Amazon RDS is a fully managed relational database service handling backups, patching, and scaling.",
+    whyWrong: {
+      A: "EC2 requires manual database management.",
+      C: "DynamoDB is a NoSQL database.",
+      D: "S3 is object storage, not a relational database.",
+    },
+    coaching:
+      "Keyword rule: **managed relational database** → **RDS**.",
+    sources: [{ title: "Amazon RDS", url: "https://aws.amazon.com/rds/" }],
+    verified: true,
+  },
+  {
+    id: "VER-006",
+    domain: "Security",
+    difficulty: "Medium",
+    prompt:
+      "A company must encrypt data stored in Amazon S3 and centrally manage encryption keys with auditability. Which solution best meets this requirement?",
+    choices: [
+      { id: "A", text: "SSE-S3" },
+      { id: "B", text: "Client-side encryption only" },
+      { id: "C", text: "SSE-KMS with customer-managed keys" },
+      { id: "D", text: "TLS encryption in transit only" },
+    ],
+    answerId: "C",
+    explanation:
+      "SSE-KMS with customer-managed keys provides centralized key management, access control, and audit logging.",
+    whyCorrect:
+      "SSE-KMS with customer-managed keys provides centralized key management, access control, and audit logging.",
+    whyWrong: {
+      A: "SSE-S3 does not provide customer-managed keys.",
+      B: "Client-side encryption lacks centralized key governance in AWS KMS.",
+      D: "TLS protects data in transit, not at rest.",
+    },
+    coaching:
+      "Keyword rule: **central key management + auditing** → **SSE-KMS (CMK)**.",
+    sources: [
+      {
+        title: "Using SSE-KMS for S3",
+        url: "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "VER-007",
+    domain: "Technology",
+    difficulty: "Easy",
+    prompt: "Which AWS service allows you to run code without provisioning or managing servers?",
+    choices: [
+      { id: "A", text: "Amazon EC2" },
+      { id: "B", text: "AWS Lambda" },
+      { id: "C", text: "Amazon ECS on EC2" },
+      { id: "D", text: "Elastic Beanstalk on EC2" },
+    ],
+    answerId: "B",
+    explanation:
+      "AWS Lambda is serverless and automatically manages infrastructure.",
+    whyCorrect:
+      "AWS Lambda is serverless and automatically manages infrastructure.",
+    whyWrong: {
+      A: "EC2 requires server management.",
+      C: "ECS on EC2 still requires EC2 management.",
+      D: "Elastic Beanstalk still runs on EC2.",
+    },
+    coaching:
+      "Serverless code execution = **Lambda**.",
+    sources: [{ title: "AWS Lambda", url: "https://aws.amazon.com/lambda/" }],
+    verified: true,
+  },
+  {
+    id: "VER-008",
+    domain: "Billing & Pricing",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS tool is best for visualizing historical spend trends and filtering costs by service?",
+    choices: [
+      { id: "A", text: "AWS Budgets" },
+      { id: "B", text: "AWS Cost Explorer" },
+      { id: "C", text: "AWS CloudTrail" },
+      { id: "D", text: "Amazon CloudWatch" },
+    ],
+    answerId: "B",
+    explanation:
+      "AWS Cost Explorer provides detailed cost visualizations and filtering.",
+    whyCorrect:
+      "AWS Cost Explorer provides detailed cost visualizations and filtering.",
+    whyWrong: {
+      A: "Budgets focus on alerts and thresholds.",
+      C: "CloudTrail tracks API activity, not cost trends.",
+      D: "CloudWatch monitors metrics and logs, not billing trends.",
+    },
+    coaching:
+      "Keyword rule: **cost trends/filters** → **Cost Explorer**.",
+    sources: [
+      {
+        title: "AWS Cost Explorer",
+        url: "https://aws.amazon.com/aws-cost-management/aws-cost-explorer/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "VER-009",
+    domain: "Technology",
+    difficulty: "Easy",
+    prompt:
+      "Which AWS service distributes incoming application traffic across multiple targets such as EC2 instances?",
+    choices: [
+      { id: "A", text: "Amazon Route 53" },
+      { id: "B", text: "Elastic Load Balancing (ELB)" },
+      { id: "C", text: "Amazon CloudFront" },
+      { id: "D", text: "AWS Direct Connect" },
+    ],
+    answerId: "B",
+    explanation:
+      "Elastic Load Balancing distributes traffic across multiple targets.",
+    whyCorrect:
+      "Elastic Load Balancing distributes traffic across multiple targets.",
+    whyWrong: {
+      A: "Route 53 is DNS-based routing.",
+      C: "CloudFront is a CDN, not a load balancer.",
+      D: "Direct Connect is dedicated connectivity, not traffic distribution.",
+    },
+    coaching:
+      "Keyword rule: **distribute traffic across targets** → **ELB**.",
+    sources: [
+      {
+        title: "Elastic Load Balancing",
+        url: "https://aws.amazon.com/elasticloadbalancing/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "VER-010",
+    domain: "Billing & Pricing",
+    difficulty: "Easy",
+    prompt: "What is a primary benefit of Reserved Instances?",
+    choices: [
+      { id: "A", text: "No long-term commitment" },
+      { id: "B", text: "Significant cost savings for steady usage" },
+      { id: "C", text: "Interruptible workloads" },
+      { id: "D", text: "Applies only to storage" },
+    ],
+    answerId: "B",
+    explanation:
+      "Reserved Instances offer significant savings for predictable, steady workloads.",
+    whyCorrect:
+      "Reserved Instances offer significant savings for predictable, steady workloads.",
+    whyWrong: {
+      A: "Reserved Instances require a commitment.",
+      C: "Interruptible workloads describe Spot Instances.",
+      D: "Reserved Instances apply to compute, not storage only.",
+    },
+    coaching:
+      "Keyword rule: **steady usage + savings** → **Reserved Instances**.",
+    sources: [
+      {
+        title: "Amazon EC2 Reserved Instances",
+        url: "https://aws.amazon.com/ec2/pricing/reserved-instances/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "aws-verified-041",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service provides automatic scaling and load balancing for containerized applications without requiring you to manage servers?",
+    choices: [
+      { id: "A", text: "Amazon EC2 Auto Scaling" },
+      { id: "B", text: "Amazon ECS with AWS Fargate" },
+      { id: "C", text: "Amazon Elastic Load Balancing only" },
+      { id: "D", text: "AWS Elastic Beanstalk on EC2" },
+    ],
+    answerId: "B",
+    explanation:
+      "Amazon ECS with AWS Fargate runs containers without managing servers and handles scaling/infrastructure automatically.",
+    whyCorrect:
+      "ECS on Fargate is serverless for containers, so AWS manages the underlying infrastructure while ECS scales tasks.",
+    whyWrong: {
+      A: "EC2 Auto Scaling still requires managing EC2 instances.",
+      C: "ELB distributes traffic but does not run or scale containers.",
+      D: "Elastic Beanstalk on EC2 still requires EC2 capacity management.",
+    },
+    coaching:
+      "Keyword rule: **containers + no servers** → **ECS with Fargate**.",
+    sources: [{ title: "AWS Fargate", url: "https://aws.amazon.com/fargate/" }],
+    verified: true,
+  },
+  {
+    id: "aws-verified-042",
+    domain: "Security",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS feature ensures that data stored in Amazon S3 is automatically replicated across multiple Availability Zones within a Region?",
+    choices: [
+      { id: "A", text: "S3 Cross-Region Replication" },
+      { id: "B", text: "S3 Versioning" },
+      { id: "C", text: "S3 Standard storage class" },
+      { id: "D", text: "S3 Lifecycle policies" },
+    ],
+    answerId: "C",
+    explanation:
+      "S3 Standard stores data redundantly across multiple Availability Zones within a Region.",
+    whyCorrect:
+      "The S3 Standard storage class provides multi-AZ redundancy by default within a Region.",
+    whyWrong: {
+      A: "Cross-Region Replication copies objects to a different Region.",
+      B: "Versioning keeps multiple versions, not AZ replication behavior.",
+      D: "Lifecycle policies control transitions/expiration, not redundancy.",
+    },
+    coaching:
+      "In-region multi-AZ durability is **S3 Standard** by default.",
+    sources: [{ title: "Amazon S3 Storage Classes", url: "https://aws.amazon.com/s3/storage-classes/" }],
+    verified: true,
+  },
+  {
+    id: "aws-verified-043",
+    domain: "Cloud Concepts",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS Cloud benefit allows customers to experiment, innovate, and fail quickly with minimal financial risk?",
+    choices: [
+      { id: "A", text: "High availability" },
+      { id: "B", text: "Economies of scale" },
+      { id: "C", text: "Pay-as-you-go pricing" },
+      { id: "D", text: "Global infrastructure" },
+    ],
+    answerId: "C",
+    explanation:
+      "Pay-as-you-go pricing lets customers pay only for what they use, reducing upfront risk and enabling rapid experimentation.",
+    whyCorrect:
+      "Pay-as-you-go pricing reduces upfront commitment and lets teams iterate quickly with minimal financial risk.",
+    whyWrong: {
+      A: "High availability improves reliability, not experimentation cost.",
+      B: "Economies of scale lower prices, but do not enable rapid experimentation directly.",
+      D: "Global infrastructure improves reach, not financial risk.",
+    },
+    coaching:
+      "Experiment fast = **no upfront cost** → **pay-as-you-go**.",
+    sources: [
+      {
+        title: "AWS Cloud Economics",
+        url: "https://aws.amazon.com/economics/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "aws-verified-044",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS pricing model provides the greatest discount for workloads with steady, predictable usage across multiple compute services?",
+    choices: [
+      { id: "A", text: "Spot Instances" },
+      { id: "B", text: "Reserved Instances" },
+      { id: "C", text: "Compute Savings Plans" },
+      { id: "D", text: "On-Demand Instances" },
+    ],
+    answerId: "C",
+    explanation:
+      "Compute Savings Plans provide flexible discounts across EC2, Lambda, and Fargate for consistent usage.",
+    whyCorrect:
+      "Compute Savings Plans apply across multiple compute services and offer strong discounts for steady usage.",
+    whyWrong: {
+      A: "Spot is cheapest but interruptible, not guaranteed for steady workloads.",
+      B: "Reserved Instances are less flexible across services.",
+      D: "On-Demand has no discount for steady usage.",
+    },
+    coaching:
+      "Steady usage across services → **Compute Savings Plans**.",
+    sources: [{ title: "AWS Savings Plans", url: "https://aws.amazon.com/savingsplans/" }],
+    verified: true,
+  },
+  {
+    id: "aws-verified-045",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service is best suited for storing and retrieving any amount of unstructured data with high durability?",
+    choices: [
+      { id: "A", text: "Amazon EBS" },
+      { id: "B", text: "Amazon RDS" },
+      { id: "C", text: "Amazon S3" },
+      { id: "D", text: "Amazon DynamoDB" },
+    ],
+    answerId: "C",
+    explanation:
+      "Amazon S3 is designed for storing unstructured data with very high durability.",
+    whyCorrect:
+      "S3 provides highly durable object storage for virtually unlimited unstructured data.",
+    whyWrong: {
+      A: "EBS is block storage attached to EC2 instances.",
+      B: "RDS is a managed relational database.",
+      D: "DynamoDB is a NoSQL database, not object storage.",
+    },
+    coaching:
+      "Unstructured object storage → **S3**.",
+    sources: [{ title: "Amazon S3", url: "https://aws.amazon.com/s3/" }],
+    verified: true,
+  },
+  {
+    id: "aws-verified-046",
+    domain: "Security",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS service helps centrally manage encryption keys and control their use across AWS services?",
+    choices: [
+      { id: "A", text: "AWS Secrets Manager" },
+      { id: "B", text: "AWS Key Management Service (KMS)" },
+      { id: "C", text: "AWS Shield" },
+      { id: "D", text: "Amazon CloudWatch" },
+    ],
+    answerId: "B",
+    explanation:
+      "AWS KMS provides centralized creation, management, and auditing of encryption keys.",
+    whyCorrect:
+      "KMS is the managed service for creating and controlling encryption keys used by AWS services.",
+    whyWrong: {
+      A: "Secrets Manager stores and rotates secrets, not encryption keys.",
+      C: "Shield protects against DDoS attacks.",
+      D: "CloudWatch is for monitoring and logs.",
+    },
+    coaching:
+      "Central key management = **KMS**.",
+    sources: [{ title: "AWS Key Management Service", url: "https://aws.amazon.com/kms/" }],
+    verified: true,
+  },
+  {
+    id: "aws-verified-047",
+    domain: "Cloud Concepts",
+    difficulty: "Medium",
+    prompt:
+      "What is the primary benefit of using multiple Availability Zones for an application?",
+    choices: [
+      { id: "A", text: "Lower storage costs" },
+      { id: "B", text: "Improved fault tolerance" },
+      { id: "C", text: "Faster global content delivery" },
+      { id: "D", text: "Simpler identity management" },
+    ],
+    answerId: "B",
+    explanation:
+      "Deploying across multiple Availability Zones improves fault tolerance and availability.",
+    whyCorrect:
+      "Multiple AZs reduce the impact of a single AZ failure, improving fault tolerance.",
+    whyWrong: {
+      A: "Multi-AZ is about resilience, not lower storage cost.",
+      C: "Global delivery is a CDN/edge function use case.",
+      D: "Identity management is unrelated to AZ design.",
+    },
+    coaching:
+      "Multi-AZ = **fault tolerance + high availability**.",
+    sources: [
+      {
+        title: "AWS Global Infrastructure",
+        url: "https://aws.amazon.com/about-aws/global-infrastructure/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "aws-verified-048",
+    domain: "Technology",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS service enables event-driven serverless workflows by connecting AWS services using events?",
+    choices: [
+      { id: "A", text: "Amazon SQS" },
+      { id: "B", text: "Amazon EventBridge" },
+      { id: "C", text: "AWS Step Functions" },
+      { id: "D", text: "Amazon SNS" },
+    ],
+    answerId: "B",
+    explanation:
+      "Amazon EventBridge routes events between AWS services and applications to build event-driven architectures.",
+    whyCorrect:
+      "EventBridge is the event bus service for routing events across AWS services and SaaS sources.",
+    whyWrong: {
+      A: "SQS is a queueing service, not an event bus.",
+      C: "Step Functions orchestrate workflows but do not route events between services.",
+      D: "SNS is pub/sub messaging but not a full event bus with routing rules.",
+    },
+    coaching:
+      "Event-driven routing across services → **EventBridge**.",
+    sources: [
+      {
+        title: "Amazon EventBridge",
+        url: "https://aws.amazon.com/eventbridge/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "aws-verified-049",
+    domain: "Billing & Pricing",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS tool allows customers to receive alerts when their estimated charges exceed a predefined threshold?",
+    choices: [
+      { id: "A", text: "AWS Cost Explorer" },
+      { id: "B", text: "AWS Budgets" },
+      { id: "C", text: "AWS Trusted Advisor" },
+      { id: "D", text: "Amazon CloudWatch Logs" },
+    ],
+    answerId: "B",
+    explanation:
+      "AWS Budgets lets you set cost thresholds and receive alerts.",
+    whyCorrect:
+      "Budgets supports threshold-based alerts for cost and usage.",
+    whyWrong: {
+      A: "Cost Explorer visualizes costs but does not manage alert thresholds by itself.",
+      C: "Trusted Advisor provides recommendations, not billing alerts.",
+      D: "CloudWatch Logs stores logs, not cost alerts.",
+    },
+    coaching:
+      "Cost thresholds + alerts → **AWS Budgets**.",
+    sources: [
+      {
+        title: "AWS Budgets",
+        url: "https://aws.amazon.com/aws-cost-management/aws-budgets/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "aws-verified-050",
+    domain: "Security",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS responsibility belongs to the customer under the AWS Shared Responsibility Model?",
+    choices: [
+      { id: "A", text: "Physical security of data centers" },
+      { id: "B", text: "Hardware maintenance" },
+      { id: "C", text: "Configuring security groups and network ACLs" },
+      { id: "D", text: "Availability Zone design" },
+    ],
+    answerId: "C",
+    explanation:
+      "Customers are responsible for configuring security groups and network ACLs.",
+    whyCorrect:
+      "Security group and network ACL configuration is part of security in the cloud (customer responsibility).",
+    whyWrong: {
+      A: "AWS is responsible for physical data center security.",
+      B: "AWS maintains underlying hardware.",
+      D: "AWS designs and operates Availability Zones.",
+    },
+    coaching:
+      "Shared responsibility: **you configure** SGs/NACLs.",
+    sources: [
+      {
+        title: "AWS Shared Responsibility Model",
+        url: "https://aws.amazon.com/compliance/shared-responsibility-model/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "aws-verified-051",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service allows users to run code in response to events without provisioning or managing servers?",
+    choices: [
+      { id: "A", text: "Amazon EC2" },
+      { id: "B", text: "Amazon ECS" },
+      { id: "C", text: "AWS Lambda" },
+      { id: "D", text: "AWS Elastic Beanstalk" },
+    ],
+    answerId: "C",
+    explanation:
+      "AWS Lambda is a serverless compute service that runs code in response to events without managing servers.",
+    whyCorrect:
+      "Lambda runs code on-demand and abstracts server management.",
+    whyWrong: {
+      A: "EC2 requires server provisioning and management.",
+      B: "ECS requires managing the container environment and capacity.",
+      D: "Elastic Beanstalk still relies on underlying compute resources.",
+    },
+    coaching:
+      "Event-driven, no servers → **Lambda**.",
+    sources: [{ title: "AWS Lambda", url: "https://aws.amazon.com/lambda/" }],
+    verified: true,
+  },
+  {
+    id: "aws-verified-052",
+    domain: "Security",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service provides protection against distributed denial-of-service (DDoS) attacks at no additional cost?",
+    choices: [
+      { id: "A", text: "AWS Shield Standard" },
+      { id: "B", text: "AWS Shield Advanced" },
+      { id: "C", text: "AWS WAF" },
+      { id: "D", text: "Amazon GuardDuty" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS Shield Standard provides automatic DDoS protection at no additional cost.",
+    whyCorrect:
+      "Shield Standard is included and protects against common DDoS attacks.",
+    whyWrong: {
+      B: "Shield Advanced is a paid service.",
+      C: "WAF filters web traffic but is not the base DDoS service.",
+      D: "GuardDuty detects threats but does not provide DDoS protection.",
+    },
+    coaching:
+      "Free DDoS protection → **Shield Standard**.",
+    sources: [
+      { title: "AWS Shield", url: "https://aws.amazon.com/shield/" },
+    ],
+    verified: true,
+  },
+  {
+    id: "aws-verified-053",
+    domain: "Billing & Pricing",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service helps identify underutilized resources and provides cost optimization recommendations?",
+    choices: [
+      { id: "A", text: "AWS Budgets" },
+      { id: "B", text: "AWS Trusted Advisor" },
+      { id: "C", text: "AWS Cost Explorer" },
+      { id: "D", text: "Amazon CloudWatch" },
+    ],
+    answerId: "B",
+    explanation:
+      "AWS Trusted Advisor provides recommendations for cost optimization, security, and performance.",
+    whyCorrect:
+      "Trusted Advisor checks for underutilized resources and cost-saving opportunities.",
+    whyWrong: {
+      A: "Budgets track spending and alerts, not optimization recommendations.",
+      C: "Cost Explorer visualizes costs but doesn’t recommend optimizations.",
+      D: "CloudWatch monitors metrics and logs, not cost optimizations.",
+    },
+    coaching:
+      "Cost optimization recommendations → **Trusted Advisor**.",
+    sources: [
+      { title: "AWS Trusted Advisor", url: "https://aws.amazon.com/premiumsupport/technology/trusted-advisor/" },
+    ],
+    verified: true,
+  },
+  {
+    id: "aws-verified-054",
+    domain: "Cloud Concepts",
+    difficulty: "Medium",
+    prompt:
+      "Which aspect of the AWS Cloud enables customers to quickly deploy resources worldwide with low latency?",
+    choices: [
+      { id: "A", text: "High availability" },
+      { id: "B", text: "Elasticity" },
+      { id: "C", text: "Global infrastructure" },
+      { id: "D", text: "Pay-as-you-go pricing" },
+    ],
+    answerId: "C",
+    explanation:
+      "AWS global infrastructure (Regions and Availability Zones) enables low-latency deployments worldwide.",
+    whyCorrect:
+      "A broad global footprint lets you deploy close to users to reduce latency.",
+    whyWrong: {
+      A: "High availability improves resilience, not geographic reach.",
+      B: "Elasticity scales resources but doesn’t provide global reach.",
+      D: "Pay-as-you-go affects cost, not latency or reach.",
+    },
+    coaching:
+      "Low latency worldwide → **Global infrastructure**.",
+    sources: [
+      { title: "AWS Global Infrastructure", url: "https://aws.amazon.com/about-aws/global-infrastructure/" },
+    ],
+    verified: true,
+  },
+  {
+    id: "aws-verified-055",
+    domain: "Technology",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS service is best suited for decoupling application components using a fully managed message queue?",
+    choices: [
+      { id: "A", text: "Amazon SNS" },
+      { id: "B", text: "Amazon SQS" },
+      { id: "C", text: "Amazon EventBridge" },
+      { id: "D", text: "AWS Step Functions" },
+    ],
+    answerId: "B",
+    explanation:
+      "Amazon SQS is a fully managed message queuing service designed to decouple application components.",
+    whyCorrect:
+      "SQS provides durable queues to decouple producers and consumers.",
+    whyWrong: {
+      A: "SNS is pub/sub, not a queue.",
+      C: "EventBridge routes events; it isn’t a message queue.",
+      D: "Step Functions orchestrate workflows, not message queuing.",
+    },
+    coaching:
+      "Decoupling with queues → **SQS**.",
+    sources: [
+      { title: "Amazon SQS", url: "https://aws.amazon.com/sqs/" },
+    ],
+    verified: true,
+  },
+];
+
+export const QUESTION_BANK: Question[] = [
+  ...QUESTION_BANK_BASE.map((q) => {
+    const knowledge = QUESTION_KNOWLEDGE[q.id];
+    return {
+      ...q,
+      whyCorrect: knowledge?.whyCorrect ?? NOT_VERIFIED,
+      whyWrong: mergeWhyWrong(q.answerId, knowledge?.whyWrong),
+      memoryHook: knowledge?.memoryHook ?? NOT_VERIFIED,
+      sources: [],
+      verified: false,
+    };
+  }),
+  ...EXTRA_QUESTIONS,
+  // --- Added exam-grade questions (verified) ---
+  {
+    id: "clf-101",
+    domain: "Security",
+    difficulty: "Hard",
+    prompt:
+      "A security team needs to detect and investigate unusual API activity across multiple AWS accounts. Which combination best supports centralized visibility and forensic review?",
+    choices: [
+      {
+        id: "A",
+        text:
+          "Enable AWS CloudTrail in each account and deliver logs to a centralized S3 bucket in a logging account",
+      },
+      {
+        id: "B",
+        text: "Use Amazon CloudWatch Logs only and disable CloudTrail to reduce costs",
+      },
+      {
+        id: "C",
+        text: "Enable AWS Config only and review configuration changes for API calls",
+      },
+      { id: "D", text: "Use AWS Budgets alerts to identify suspicious API activity" },
+    ],
+    answerId: "A",
+    whyCorrect:
+      "CloudTrail records account activity and API calls. Centralizing CloudTrail logs (often via an Organizations trail) into an S3 bucket in a dedicated logging account supports cross-account visibility, retention, and investigation workflows.",
+    whyWrong: {
+      A: "Correct — CloudTrail is the authoritative record of API calls and can be centralized.",
+      B: "CloudWatch Logs is useful for metrics/logs, but CloudTrail is the primary service for API activity history.",
+      C: "AWS Config tracks configuration changes and resource compliance; it does not replace CloudTrail’s API call history.",
+      D: "Budgets alerts cost anomalies, not API-level security events.",
+    },
+    coaching:
+      "Keyword rule: **API activity history / forensic trail** → **CloudTrail**. Trap: Config tracks *state*, not *who-called-what*.",
+    memoryHook: "CloudTrail = who did what (API calls).",
+    testedConcepts: ["cloudtrail-api-history", "centralized-logging", "multi-account-security"],
+    sources: [
+      {
+        title: "AWS CloudTrail — What is CloudTrail?",
+        url: "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html",
+      },
+      {
+        title: "Creating an organization trail (AWS Organizations)",
+        url: "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-trail-organization.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-102",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "A workload needs the lowest compute cost and can tolerate interruptions. Which purchasing option is the best fit, and what is the key operational risk?",
+    choices: [
+      { id: "A", text: "On-Demand Instances; risk is long-term commitment" },
+      { id: "B", text: "Reserved Instances; risk is instance interruption at any time" },
+      {
+        id: "C",
+        text:
+          "Spot Instances; risk is the instance can be interrupted when capacity is needed elsewhere",
+      },
+      { id: "D", text: "Dedicated Hosts; risk is capacity is shared with other customers" },
+    ],
+    answerId: "C",
+    whyCorrect:
+      "Spot Instances offer steep discounts in exchange for the possibility of interruption when EC2 needs the capacity back. That matches fault-tolerant workloads seeking the lowest cost.",
+    whyWrong: {
+      A: "On-Demand has no commitment, but it’s typically not the lowest-cost option compared to Spot.",
+      B: "Reserved Instances reduce cost with commitment, but they are not designed to be interruptible.",
+      C: "Correct — Spot is cheapest but interruptible.",
+      D: "Dedicated Hosts are about compliance/isolation and are typically more expensive, not cheaper.",
+    },
+    coaching:
+      "Keyword rule: **interruptible / fault-tolerant + cheapest** → **Spot**. Trap: if it says **must not be interrupted**, Spot is wrong.",
+    memoryHook: "Spot = spare capacity bargains (but can be taken back).",
+    testedConcepts: ["ec2-spot", "pricing-models"],
+    sources: [
+      {
+        title: "Amazon EC2 Spot Instances",
+        url: "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-103",
+    domain: "Cloud Concepts",
+    difficulty: "Hard",
+    prompt:
+      "A company wants to reduce blast radius and simplify billing separation across teams while still applying centralized governance. Which AWS feature best supports this?",
+    choices: [
+      {
+        id: "A",
+        text:
+          "AWS Organizations with multiple AWS accounts (OUs) and consolidated billing",
+      },
+      { id: "B", text: "One AWS account with IAM users for each team" },
+      { id: "C", text: "Multiple Regions in a single account" },
+      { id: "D", text: "Amazon VPC peering only" },
+    ],
+    answerId: "A",
+    whyCorrect:
+      "AWS Organizations enables multi-account strategy (separation of duties and blast radius reduction) while providing consolidated billing and centralized policy controls (e.g., SCPs).",
+    whyWrong: {
+      A: "Correct — multi-account with centralized governance and consolidated billing.",
+      B: "Single account increases blast radius and mixes billing/limits across teams.",
+      C: "Regions don’t provide billing separation or governance boundaries between teams.",
+      D: "VPC peering is networking; it doesn’t address account-level governance and billing.",
+    },
+    coaching:
+      "Keyword rule: **multi-team separation + centralized governance** → **Organizations**. Trap: IAM users ≠ account boundary.",
+    memoryHook: "Organizations = many accounts, one boss.",
+    testedConcepts: ["aws-organizations", "multi-account-strategy", "scp-governance"],
+    sources: [
+      {
+        title: "AWS Organizations — What is AWS Organizations?",
+        url: "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-104",
+    domain: "Technology",
+    difficulty: "Hard",
+    prompt:
+      "A web application experiences unpredictable traffic spikes. The team wants automatic scaling without managing servers. Which AWS compute option is the best fit?",
+    choices: [
+      { id: "A", text: "AWS Lambda" },
+      { id: "B", text: "Amazon EC2 Dedicated Hosts" },
+      {
+        id: "C",
+        text: "Amazon EC2 instances in a single Availability Zone without Auto Scaling",
+      },
+      { id: "D", text: "Amazon ECS on self-managed EC2 with fixed cluster size" },
+    ],
+    answerId: "A",
+    whyCorrect:
+      "AWS Lambda is serverless and automatically scales with request volume (within service limits) without requiring server management. It’s a common fit for event-driven or request-based workloads with bursty traffic.",
+    whyWrong: {
+      A: "Correct — serverless, auto-scales, no server management.",
+      B: "Dedicated Hosts are for compliance/licensing needs and require managing capacity.",
+      C: "Single AZ + no Auto Scaling won’t handle spikes reliably and reduces availability.",
+      D: "ECS on fixed EC2 still requires managing the underlying instances and scaling the cluster.",
+    },
+    coaching:
+      "Keyword rule: **no servers to manage + bursty traffic** → **Lambda**. Trap: “serverless” ≠ “runs forever” (timeouts apply).",
+    memoryHook: "Lambda = code runs on demand.",
+    testedConcepts: ["serverless-lambda", "autoscaling-managed-compute"],
+    sources: [
+      {
+        title: "AWS Lambda — Developer Guide",
+        url: "https://docs.aws.amazon.com/lambda/latest/dg/welcome.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-105",
+    domain: "Security",
+    difficulty: "Hard",
+    prompt:
+      "A company must ensure data stored in Amazon S3 is encrypted at rest and that encryption keys are centrally managed with access controls and auditability. Which solution best meets this?",
+    choices: [
+      { id: "A", text: "Enable SSE-S3 and allow all users to manage keys in S3" },
+      {
+        id: "B",
+        text: "Use SSE-KMS with AWS Key Management Service (KMS) customer managed keys (CMKs)",
+      },
+      {
+        id: "C",
+        text: "Use client-side encryption only and store keys in plaintext on an EC2 instance",
+      },
+      { id: "D", text: "Disable S3 encryption and rely on TLS in transit" },
+    ],
+    answerId: "B",
+    whyCorrect:
+      "SSE-KMS uses AWS KMS keys for encryption at rest with strong access control via key policies/IAM, plus logging and auditability (e.g., CloudTrail for KMS API calls).",
+    whyWrong: {
+      A: "SSE-S3 is encryption at rest but does not provide the same centralized key control features as KMS CMKs.",
+      B: "Correct — KMS CMKs provide centralized control, policies, and auditability.",
+      C: "Client-side encryption can work, but plaintext key storage is insecure and violates centralized controlled key management.",
+      D: "TLS only protects in transit, not at rest.",
+    },
+    coaching:
+      "Keyword rule: **central key management + auditability** → **SSE-KMS**. Trap: TLS ≠ encryption at rest.",
+    memoryHook: "KMS = controlled keys + audit trail.",
+    testedConcepts: ["s3-encryption", "kms-cmk", "encryption-at-rest"],
+    sources: [
+      {
+        title: "Protecting data using server-side encryption with AWS KMS keys (SSE-KMS)",
+        url: "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html",
+      },
+      {
+        title: "AWS Key Management Service (KMS)",
+        url: "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-106",
+    domain: "Technology",
+    difficulty: "Hard",
+    prompt:
+      "A company wants private connectivity from its on-premises network to AWS that does not traverse the public internet. Which service provides this and what is a common benefit?",
+    choices: [
+      {
+        id: "A",
+        text:
+          "AWS Direct Connect; more consistent network performance and potentially reduced egress costs",
+      },
+      {
+        id: "B",
+        text: "Internet Gateway; private connectivity with dedicated bandwidth",
+      },
+      { id: "C", text: "NAT Gateway; private connectivity without public internet" },
+      { id: "D", text: "VPC Peering; connects on-premises directly to AWS without internet" },
+    ],
+    answerId: "A",
+    whyCorrect:
+      "AWS Direct Connect provides dedicated private connectivity between on-premises and AWS. It can offer more consistent throughput/latency and may reduce data transfer costs compared to internet-based connectivity.",
+    whyWrong: {
+      A: "Correct — Direct Connect is private and dedicated.",
+      B: "Internet Gateway is public internet routing for a VPC.",
+      C: "NAT Gateway enables outbound internet access for private subnets; it’s not on-prem private connectivity.",
+      D: "VPC peering connects VPC-to-VPC, not on-prem to AWS by itself.",
+    },
+    coaching:
+      "Keyword rule: **on-prem → AWS private link** → **Direct Connect**. Trap: NAT/IGW are still internet-based paths.",
+    memoryHook: "Direct Connect = dedicated private pipe.",
+    testedConcepts: ["direct-connect", "hybrid-connectivity"],
+    sources: [
+      {
+        title: "AWS Direct Connect — User Guide",
+        url: "https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-107",
+    domain: "Billing & Pricing",
+    difficulty: "Medium",
+    prompt:
+      "A team wants to track AWS costs by project across multiple accounts and generate cost reports filtered by those projects. Which approach is most appropriate?",
+    choices: [
+      {
+        id: "A",
+        text:
+          "Use Cost Allocation Tags and activate them for billing, then filter in Cost Explorer",
+      },
+      { id: "B", text: "Use Security Groups as project identifiers" },
+      { id: "C", text: "Use Route Tables to label project spend" },
+      { id: "D", text: "Use AWS Shield to generate cost reports per project" },
+    ],
+    answerId: "A",
+    whyCorrect:
+      "Cost allocation tags (once activated) can be used in billing and Cost Explorer to allocate and filter costs by project, environment, owner, and more.",
+    whyWrong: {
+      A: "Correct — tags + Cost Explorer are built for cost allocation reporting.",
+      B: "Security Groups are networking controls, not billing allocation mechanisms.",
+      C: "Route Tables are routing constructs and not cost allocation mechanisms.",
+      D: "AWS Shield is for DDoS protection, unrelated to cost reporting by project.",
+    },
+    coaching:
+      "Keyword rule: **cost by project/team** → **cost allocation tags**. Trap: infra objects (SG/RT) aren’t billing dimensions.",
+    memoryHook: "Tags turn into billing filters.",
+    testedConcepts: ["cost-allocation-tags", "cost-explorer"],
+    sources: [
+      {
+        title: "AWS Billing — Cost allocation tags",
+        url: "https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html",
+      },
+      {
+        title: "AWS Cost Explorer",
+        url: "https://docs.aws.amazon.com/cost-management/latest/userguide/ce-what-is.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-108",
+    domain: "Cloud Concepts",
+    difficulty: "Hard",
+    prompt:
+      "Which statement best describes the AWS Shared Responsibility Model for security in the cloud?",
+    choices: [
+      {
+        id: "A",
+        text:
+          "AWS is responsible for security in the cloud, and customers are responsible for security of the cloud",
+      },
+      {
+        id: "B",
+        text:
+          "AWS manages security of the cloud, and customers manage security in the cloud (e.g., data, IAM, configurations)",
+      },
+      {
+        id: "C",
+        text:
+          "Customers are fully responsible for all security controls, including physical data center security",
+      },
+      {
+        id: "D",
+        text:
+          "AWS is responsible only for patching guest operating systems on Amazon EC2 instances",
+      },
+    ],
+    answerId: "B",
+    whyCorrect:
+      "Under the Shared Responsibility Model, AWS secures the underlying infrastructure (facilities, hardware, virtualization), while customers secure what they run and store in AWS (data, IAM, OS/app configs depending on the service).",
+    whyWrong: {
+      A: "This reverses the model. AWS is responsible for security *of* the cloud; customers for security *in* the cloud.",
+      B: "Correct — AWS secures the infrastructure; customers secure their data/config/identity and workloads.",
+      C: "Physical security is AWS responsibility.",
+      D: "On EC2, customers patch the guest OS; AWS patches the underlying infrastructure.",
+    },
+    coaching:
+      "Keyword rule: **Shared Responsibility** → AWS = **of** the cloud, you = **in** the cloud. Trap: EC2 guest OS patching is on you.",
+    memoryHook: "AWS handles the floor; you handle what’s on it.",
+    testedConcepts: ["shared-responsibility-model"],
+    sources: [
+      {
+        title: "AWS Shared Responsibility Model",
+        url: "https://aws.amazon.com/compliance/shared-responsibility-model/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-109",
+    domain: "Technology",
+    difficulty: "Hard",
+    prompt:
+      "A company needs highly available DNS with health checks and automatic failover routing. Which AWS service provides this?",
+    choices: [
+      { id: "A", text: "Amazon Route 53" },
+      { id: "B", text: "AWS WAF" },
+      { id: "C", text: "Amazon CloudFront" },
+      { id: "D", text: "AWS Config" },
+    ],
+    answerId: "A",
+    whyCorrect:
+      "Amazon Route 53 is AWS’s DNS service and supports routing policies such as failover with health checks to route traffic away from unhealthy endpoints.",
+    whyWrong: {
+      A: "Correct — Route 53 provides DNS with health checks and failover routing.",
+      B: "WAF is a web application firewall, not DNS.",
+      C: "CloudFront is a CDN; it can help performance but doesn’t replace DNS failover logic.",
+      D: "Config tracks resource configurations/compliance, not DNS routing.",
+    },
+    coaching:
+      "Keyword rule: **DNS + health checks + failover** → **Route 53**. Trap: CloudFront improves delivery, not authoritative DNS routing.",
+    memoryHook: "Route 53 = DNS + smart routing.",
+    testedConcepts: ["route53-dns", "health-check-failover"],
+    sources: [
+      {
+        title: "Amazon Route 53 — Developer Guide",
+        url: "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/Welcome.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-110",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "A company wants to set a monthly cost threshold and receive notifications when forecasted costs are likely to exceed it. Which AWS service should they use?",
+    choices: [
+      { id: "A", text: "AWS Budgets" },
+      { id: "B", text: "AWS CloudTrail" },
+      { id: "C", text: "Amazon Inspector" },
+      { id: "D", text: "AWS IAM Access Analyzer" },
+    ],
+    answerId: "A",
+    whyCorrect:
+      "AWS Budgets lets you set cost and usage budgets and receive alerts (including forecast-based alerts) when spend is expected to exceed thresholds.",
+    whyWrong: {
+      A: "Correct — budgets support actual and forecast alerts for cost thresholds.",
+      B: "CloudTrail is for auditing API activity, not cost thresholds.",
+      C: "Inspector is for security scanning, not budgeting.",
+      D: "Access Analyzer is for IAM/resource access analysis, not cost management.",
+    },
+    coaching:
+      "Keyword rule: **cost threshold + alerts/forecast** → **AWS Budgets**. Trap: CloudTrail is security audit, not finance alerts.",
+    memoryHook: "Budgets = limits + notifications.",
+    testedConcepts: ["aws-budgets", "cost-forecast-alerts"],
+    sources: [
+      {
+        title: "AWS Budgets — User Guide",
+        url: "https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html",
+      },
+    ],
+    verified: true,
+  },
+  // --- NEW VERIFIED QUESTIONS (clf-091 .. clf-100) ---
+
+  {
+    id: "clf-091",
+    domain: "Cloud Concepts",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS Cloud benefit MOST directly enables faster innovation by reducing time to market?",
+    choices: [
+      { id: "A", text: "High availability" },
+      { id: "B", text: "Pay-as-you-go pricing" },
+      { id: "C", text: "Managed services that remove infrastructure management" },
+      { id: "D", text: "Global infrastructure" },
+    ],
+    answerId: "C",
+    explanation:
+      "Managed services offload operational tasks so teams can ship features faster.",
+    coaching:
+      "If the stem says **faster innovation / reduce time to market**, look for **managed services** (RDS, Lambda, SQS, etc.).\nTrap check: 'global' and 'high availability' are real benefits, but they’re not the *most direct* lever for shipping faster.",
+    whyCorrect:
+      "Managed services reduce undifferentiated heavy lifting (provisioning, patching, scaling) so engineering time shifts to product delivery and iteration.",
+    whyWrong: {
+      A: "Availability improves resilience, not development speed.",
+      B: "Pay-as-you-go reduces upfront cost; it doesn’t directly accelerate shipping.",
+      D: "Global infrastructure improves latency and reach, not the development cycle itself.",
+    },
+    memoryHook: "No servers → more shipping.",
+    testedConcepts: ["Cloud value proposition", "Managed services"],
+    sources: [
+      {
+        title: "AWS Cloud Value Proposition (What is Cloud Computing?)",
+        url: "https://aws.amazon.com/what-is-cloud-computing/",
+      },
+    ],
+    verified: true,
+  },
+
+  {
+    id: "clf-092",
+    domain: "Security",
+    difficulty: "Medium",
+    prompt:
+      "Under the AWS Shared Responsibility Model, which task is the customer responsible for?",
+    choices: [
+      { id: "A", text: "Physical security of AWS data centers" },
+      { id: "B", text: "Maintaining the hypervisor layer" },
+      { id: "C", text: "Configuring security groups and network ACLs" },
+      { id: "D", text: "Replacing failed hard drives in AWS hardware" },
+    ],
+    answerId: "C",
+    explanation:
+      "Customers configure security in the cloud, including network controls like security groups/NACLs.",
+    coaching:
+      "Quick rule: AWS handles **security OF the cloud** (facilities, hardware, core networking). You handle **security IN the cloud** (configs, IAM, OS/app for many services).\nIf you see security groups/NACLs/IAM policies → that’s almost always the customer side.",
+    whyCorrect:
+      "Network access controls (security groups, NACLs) are customer-configured controls that determine traffic allowed to and from resources.",
+    whyWrong: {
+      A: "AWS handles physical security and facilities.",
+      B: "AWS operates the hypervisor layer in AWS-managed infrastructure.",
+      D: "AWS manages hardware replacement and repairs.",
+    },
+    memoryHook: "IN the cloud = your configs.",
+    testedConcepts: ["Shared Responsibility Model", "Network security controls"],
+    sources: [
+      {
+        title: "AWS Shared Responsibility Model",
+        url: "https://aws.amazon.com/compliance/shared-responsibility-model/",
+      },
+    ],
+    verified: true,
+  },
+
+  {
+    id: "clf-093",
+    domain: "Technology",
+    difficulty: "Hard",
+    prompt:
+      "A workload needs a fully managed relational database that automates backups, patching, and scaling where possible. Which AWS service best fits?",
+    choices: [
+      { id: "A", text: "Amazon EC2 with MySQL installed" },
+      { id: "B", text: "Amazon RDS" },
+      { id: "C", text: "Amazon S3" },
+      { id: "D", text: "Amazon DynamoDB" },
+    ],
+    answerId: "B",
+    explanation:
+      "Amazon RDS is a managed relational database service with automated maintenance features.",
+    coaching:
+      "If it says **relational** + **managed** + **backups/patching**, pick **RDS**.\nTrap check: DynamoDB is managed but **non-relational**. EC2 gives you control but not managed ops.",
+    whyCorrect:
+      "RDS provides managed relational engines and automates operational tasks like backups and patching with built-in features and options for scaling.",
+    whyWrong: {
+      A: "EC2 requires you to manage backups, patching, scaling, and operations yourself.",
+      C: "S3 is object storage, not a relational database.",
+      D: "DynamoDB is NoSQL (non-relational).",
+    },
+    memoryHook: "RDS = Relational Done for you.",
+    testedConcepts: ["Managed databases", "RDS vs EC2 vs DynamoDB"],
+    sources: [
+      { title: "Amazon RDS", url: "https://aws.amazon.com/rds/" },
+    ],
+    verified: true,
+  },
+
+  {
+    id: "clf-094",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "A company wants the lowest compute cost for fault-tolerant workloads that can be interrupted. Which pricing model should they use?",
+    choices: [
+      { id: "A", text: "On-Demand Instances" },
+      { id: "B", text: "Reserved Instances" },
+      { id: "C", text: "Spot Instances" },
+      { id: "D", text: "Dedicated Instances" },
+    ],
+    answerId: "C",
+    explanation:
+      "Spot Instances provide steep discounts for interruptible, flexible workloads.",
+    coaching:
+      "Keyword pattern: **interruptible / fault-tolerant / cheapest** → **Spot**.\nTrap check: if it says 'must not be interrupted' or 'steady baseline', Spot is wrong (use RI/Savings Plans/On-Demand).",
+    whyCorrect:
+      "Spot Instances use spare EC2 capacity and offer the deepest discounts, with the tradeoff that AWS can reclaim capacity (interruption).",
+    whyWrong: {
+      A: "On-Demand is flexible but typically costs more than Spot for the same compute.",
+      B: "Reserved is for steady usage commitments; not the *lowest* and not about interruptions.",
+      D: "Dedicated is for isolation/compliance and is typically more expensive.",
+    },
+    memoryHook: "Spot = spare capacity bargains.",
+    testedConcepts: ["EC2 purchasing options", "Spot tradeoffs"],
+    sources: [
+      { title: "Amazon EC2 Spot Instances", url: "https://aws.amazon.com/ec2/spot/" },
+    ],
+    verified: true,
+  },
+
+  {
+    id: "clf-095",
+    domain: "Security",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS service is primarily used to help meet compliance requirements by providing evidence of controls and audit reports for AWS services?",
+    choices: [
+      { id: "A", text: "AWS Artifact" },
+      { id: "B", text: "AWS CloudTrail" },
+      { id: "C", text: "Amazon GuardDuty" },
+      { id: "D", text: "AWS WAF" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS Artifact provides on-demand access to AWS compliance reports and agreements.",
+    coaching:
+      "If you see **audit reports / compliance documents / SOC reports**, that’s **AWS Artifact**.\nCloudTrail is logging, GuardDuty is threat detection, WAF is web firewall — all useful, but not the compliance report portal.",
+    whyCorrect:
+      "AWS Artifact is the central resource for compliance-related information, including audit artifacts and certain agreements.",
+    whyWrong: {
+      B: "CloudTrail records API activity; it’s evidence, but not where AWS provides official audit reports.",
+      C: "GuardDuty detects threats; not a compliance report repository.",
+      D: "WAF protects web apps; not compliance documentation.",
+    },
+    memoryHook: "Artifact = audit artifacts.",
+    testedConcepts: ["Compliance on AWS", "Security services overview"],
+    sources: [
+      { title: "AWS Artifact", url: "https://aws.amazon.com/artifact/" },
+    ],
+    verified: true,
+  },
+
+  {
+    id: "clf-096",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Which service is best for decoupling application components using a fully managed message queue?",
+    choices: [
+      { id: "A", text: "Amazon SQS" },
+      { id: "B", text: "Amazon EC2" },
+      { id: "C", text: "Amazon Route 53" },
+      { id: "D", text: "Amazon CloudFront" },
+    ],
+    answerId: "A",
+    explanation:
+      "Amazon SQS is a fully managed message queue used to decouple components.",
+    coaching:
+      "Decouple + queue + asynchronous messaging → **SQS**.\nTrap check: Route 53 = DNS, CloudFront = CDN, EC2 = compute.",
+    whyCorrect:
+      "SQS provides reliable, scalable queuing so producers and consumers can operate independently.",
+    whyWrong: {
+      B: "EC2 is compute; it’s not a managed queue.",
+      C: "Route 53 is DNS and routing, not messaging.",
+      D: "CloudFront is a CDN, not a queue.",
+    },
+    memoryHook: "SQS = Simple Queue Service (decouple).",
+    testedConcepts: ["Decoupling", "Messaging basics"],
+    sources: [
+      { title: "Amazon SQS", url: "https://aws.amazon.com/sqs/" },
+    ],
+    verified: true,
+  },
+
+  {
+    id: "clf-097",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "A company has multiple AWS accounts in AWS Organizations and wants to reduce overall costs while still tracking each team’s spend. Which feature best meets this requirement?",
+    choices: [
+      { id: "A", text: "Separate invoices for each AWS account" },
+      { id: "B", text: "Consolidated billing with cost allocation tags" },
+      { id: "C", text: "AWS Budgets with account-level alerts only" },
+      { id: "D", text: "AWS Cost Explorer forecasts only" },
+    ],
+    answerId: "B",
+    explanation:
+      "Consolidated billing enables shared discounts; tags help allocate costs to teams.",
+    coaching:
+      "Organizations question that mentions **reduce costs + see team usage** → **consolidated billing** plus **tags/Cost Categories**.\nTrap check: Budgets alerts you, but doesn’t inherently consolidate or allocate across multiple accounts.",
+    whyCorrect:
+      "Consolidated billing can aggregate usage for tiered pricing/discounts, and tags enable cost allocation reporting by project/team.",
+    whyWrong: {
+      A: "Separate invoices reduce visibility into aggregate usage and don’t optimize shared discounts.",
+      C: "Budgets helps monitor spend; it doesn’t provide consolidated billing savings by itself.",
+      D: "Forecasting provides estimates, not allocation + consolidated savings.",
+    },
+    memoryHook: "Org + tags = savings + visibility.",
+    testedConcepts: ["AWS Organizations", "Billing & cost allocation"],
+    sources: [
+      {
+        title: "AWS Organizations - Consolidated billing",
+        url: "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_accounts.html",
+      },
+      {
+        title: "AWS Cost Allocation Tags",
+        url: "https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html",
+      },
+    ],
+    verified: true,
+  },
+
+  {
+    id: "clf-098",
+    domain: "Cloud Concepts",
+    difficulty: "Medium",
+    prompt:
+      "Which design principle helps achieve high availability in AWS architectures?",
+    choices: [
+      {
+        id: "A",
+        text: "Deploying resources in a single Availability Zone to reduce latency",
+      },
+      { id: "B", text: "Using multiple Availability Zones for redundancy" },
+      { id: "C", text: "Purchasing Reserved Instances" },
+      { id: "D", text: "Storing data only on instance storage for performance" },
+    ],
+    answerId: "B",
+    explanation:
+      "Using multiple Availability Zones increases fault tolerance and availability.",
+    coaching:
+      "High availability = **multi-AZ**.\nIf it says 'single AZ' it’s usually a trap unless the question is about latency/cost and explicitly accepts risk.",
+    whyCorrect:
+      "Multi-AZ designs tolerate the loss of an AZ by keeping workloads running in another AZ within the Region.",
+    whyWrong: {
+      A: "Single AZ is a single point of failure.",
+      C: "Reserved Instances are a pricing model, not an HA design pattern.",
+      D: "Instance storage is ephemeral and not an HA storage strategy.",
+    },
+    memoryHook: "HA = AZs, not discounts.",
+    testedConcepts: ["High availability", "AZs vs Regions"],
+    sources: [
+      {
+        title: "AWS Global Infrastructure (Regions & AZs)",
+        url: "https://aws.amazon.com/about-aws/global-infrastructure/",
+      },
+    ],
+    verified: true,
+  },
+
+  {
+    id: "clf-099",
+    domain: "Security",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service provides centralized management of firewall rules (security group policies) across multiple accounts within AWS Organizations?",
+    choices: [
+      { id: "A", text: "AWS Firewall Manager" },
+      { id: "B", text: "Amazon Inspector" },
+      { id: "C", text: "AWS Shield Standard" },
+      { id: "D", text: "AWS Secrets Manager" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS Firewall Manager centrally manages firewall policies across accounts.",
+    coaching:
+      "Keyword combo: **centralized policies + multiple accounts + Organizations** → **Firewall Manager**.\nTrap check: Inspector = vuln scanning, Shield = DDoS, Secrets Manager = secrets rotation.",
+    whyCorrect:
+      "Firewall Manager lets you define and enforce firewall policies (including security group policies and WAF rules) across multiple AWS accounts and resources.",
+    whyWrong: {
+      B: "Inspector assesses vulnerabilities; it doesn't centrally enforce network firewall policies.",
+      C: "Shield protects against DDoS; not centralized firewall policy management.",
+      D: "Secrets Manager manages secrets; unrelated to firewall policies.",
+    },
+    memoryHook: "Manager = manage policies everywhere.",
+    testedConcepts: ["Central security management", "Organizations security tooling"],
+    sources: [
+      { title: "AWS Firewall Manager", url: "https://aws.amazon.com/firewall-manager/" },
+    ],
+    verified: true,
+  },
+
+  {
+    id: "clf-100",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS support plan includes guidance from a Technical Account Manager (TAM)?",
+    choices: [
+      { id: "A", text: "Basic" },
+      { id: "B", text: "Developer" },
+      { id: "C", text: "Business" },
+      { id: "D", text: "Enterprise" },
+    ],
+    answerId: "D",
+    explanation:
+      "Enterprise Support includes a TAM (or designated technical support advisor) and proactive guidance.",
+    coaching:
+      "Support plan ladder:\nBasic (free) → Developer → Business → **Enterprise**.\nIf the question says **TAM / proactive guidance / concierge** → pick **Enterprise**.",
+    whyCorrect:
+      "Enterprise Support provides a TAM and proactive engagement to optimize operations and architecture at scale.",
+    whyWrong: {
+      A: "Basic has limited support and no TAM.",
+      B: "Developer is for dev use cases; no TAM.",
+      C: "Business has faster response times and broader support, but TAM is an Enterprise feature.",
+    },
+    memoryHook: "TAM = Top-tier (Enterprise).",
+    testedConcepts: ["AWS Support plans"],
+    sources: [
+      { title: "AWS Support Plans", url: "https://aws.amazon.com/premiumsupport/plans/" },
+    ],
+    verified: true,
+  },
+];
+export const QUESTION_COUNT = QUESTION_BANK.length;
+
+export function isVerifiedQuestion(q: Question) {
+  const hasSources = Boolean(q.sources && q.sources.length > 0);
+  const whyCorrect = q.whyCorrect?.trim() ?? "";
+  const hasWhyCorrect = whyCorrect.length > 0;
+  const hasPlaceholder = whyCorrect.includes("Not verified yet");
+  return hasSources && hasWhyCorrect && !hasPlaceholder;
+}
+
+export function getVerificationIssues(q: Question): string[] {
+  const issues: string[] = [];
+  if (!q.sources || q.sources.length === 0) issues.push("Missing sources");
+  const whyCorrect = q.whyCorrect?.trim() ?? "";
+  if (!whyCorrect) issues.push("Missing whyCorrect");
+  if (whyCorrect.includes("Not verified yet")) issues.push("Placeholder whyCorrect");
+  return issues;
+}

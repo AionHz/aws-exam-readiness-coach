@@ -35,6 +35,6 @@ Edit or add files in `data/` following the existing structure:
 
 ## Planned improvements
 - Persist progress (localStorage)
-- Review missed questions
+- Review wrong questions
 - CLF-C02 domain filtering
 - Timed exam mode

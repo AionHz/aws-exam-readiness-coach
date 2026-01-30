@@ -38,7 +38,7 @@ export const BADGES: {
   {
     id: "REVIEW_CLEAN",
     title: "Clean Slate",
-    description: "Clear your missed list after 10 attempts.",
+    description: "Clear your wrong list after 10 attempts.",
     icon: "✅",
   },
 ];
@@ -50,7 +50,8 @@ type StoredProgressLike = {
   byDomain: Record<string, { attempts: number; correct: number }>;
 };
 
-const QUIZ_MISSED_KEY = "aws-exam-readiness-quiz-missed-v1";
+const QUIZ_WRONG_KEY = "aws-exam-readiness-quiz-wrong-v1";
+const LEGACY_QUIZ_MISSED_KEY = "aws-exam-readiness-quiz-missed-v1";
 
 export function computeUnlockedBadges(progress: StoredProgressLike): BadgeId[] {
   const unlocked = new Set<BadgeId>();
@@ -80,10 +81,19 @@ export function computeUnlockedBadges(progress: StoredProgressLike): BadgeId[] {
   if (attempts >= 10) {
     try {
       if (typeof window !== "undefined") {
-        const raw = window.localStorage.getItem(QUIZ_MISSED_KEY);
+        const raw = window.localStorage.getItem(QUIZ_WRONG_KEY);
         const parsed = raw ? (JSON.parse(raw) as string[]) : [];
         if (Array.isArray(parsed) && parsed.length === 0) {
           unlocked.add("REVIEW_CLEAN");
+        } else if (!raw) {
+          const legacyRaw = window.localStorage.getItem(LEGACY_QUIZ_MISSED_KEY);
+          const legacyParsed = legacyRaw ? (JSON.parse(legacyRaw) as string[]) : [];
+          if (Array.isArray(legacyParsed)) {
+            window.localStorage.setItem(QUIZ_WRONG_KEY, JSON.stringify(legacyParsed));
+            if (legacyParsed.length === 0) {
+              unlocked.add("REVIEW_CLEAN");
+            }
+          }
         }
       }
     } catch {

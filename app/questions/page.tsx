@@ -1,4 +1,5 @@
 import { QUESTION_COUNT } from "../lib/questionBank";
+import { PremiumButton } from "../components/PremiumButton";
 export default function QuestionsCountPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-white">
@@ -18,17 +19,15 @@ export default function QuestionsCountPage() {
         </p>
 
         <div className="mt-6 flex flex-wrap gap-2">
-          <a
-            href="/quiz"
-            className="rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-sky-400"
-          >
-            Go to /quiz →
+          <a href="/quiz" className="no-underline hover:no-underline focus:no-underline">
+            <PremiumButton variant="indigo" size="md" type="button">
+              Go to /quiz →
+            </PremiumButton>
           </a>
-          <a
-            href="/dashboard"
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm hover:bg-white/10"
-          >
-            Go to /dashboard →
+          <a href="/dashboard" className="no-underline hover:no-underline focus:no-underline">
+            <PremiumButton variant="neutral" size="md" type="button">
+              Go to /dashboard →
+            </PremiumButton>
           </a>
         </div>
 
