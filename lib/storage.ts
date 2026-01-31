@@ -29,10 +29,6 @@ export function loadState(): ProgressState {
     if (!Array.isArray(p.answers)) return makeInitialState();
     if (!p.topicStats || typeof p.topicStats !== "object") return makeInitialState();
 
-    // Ensure mock fields exist
-    if (typeof p.mockModeEnabled !== "boolean") p.mockModeEnabled = false;
-    if (p.mockSession === undefined) p.mockSession = null;
-
     return p;
   } catch {
     return makeInitialState();
