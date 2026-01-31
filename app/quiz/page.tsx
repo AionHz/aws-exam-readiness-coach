@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
 import {
   useEffect,
   useMemo,
@@ -235,7 +236,7 @@ function buildExamSet(pool: Question[], size = 65) {
   return shuffled.slice(0, Math.min(size, shuffled.length)).map((q) => q.id);
 }
 
-export default function QuizPage() {
+function QuizPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [selectedAnswer, setSelectedAnswer] = useState<ChoiceId | null>(null);
@@ -2136,5 +2137,13 @@ const timerRow = (
         )}
       </main>
     </SurfaceShell>
+  );
+}
+
+export default function QuizPage() {
+  return (
+    <Suspense fallback={null}>
+      <QuizPageContent />
+    </Suspense>
   );
 }
