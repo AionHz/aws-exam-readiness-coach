@@ -46,7 +46,7 @@ export function useProgress() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const s = loadState(makeInitialState());
+    const s = loadState();
     setState(s);
     setHydrated(true);
   }, []);
