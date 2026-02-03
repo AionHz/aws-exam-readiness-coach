@@ -1712,7 +1712,7 @@ const timerRow = (
           </div>
 
           {submitted && (
-            <div className={`mt-6 p-4 ${cardBase}`}>
+            <div className={`coach-feedback-shell mt-6 p-4 ${cardBase}`}>
               {!examMode && streakMilestone && showStreakBanner && (
                 <div className="mb-3 inline-block rounded-lg bg-indigo-500/20 px-3 py-1 text-sm text-white">
                   {streakCorrect === 3 && "🔥 3-question streak!"}
