@@ -254,7 +254,7 @@ export default function Home() {
             {donationCards.map((card) => (
               <div
                 key={card.id}
-                className={`p-4 ${cardBase} ${cardHover} cursor-default`}
+                className={`donation-card p-4 ${cardBase} ${cardHover} cursor-default`}
               >
                 <div className="flex items-center gap-2 font-semibold">
                   {card.id === "btc" && (

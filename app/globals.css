@@ -284,6 +284,43 @@ textarea {
 
 /* iOS Safari: reduce translucency for quiz dock controls to keep labels readable */
 @supports (-webkit-touch-callout: none) {
+  .premium-btn {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.38);
+  }
+
+  .premium-btn[data-variant="neutral"] {
+    background: linear-gradient(180deg, rgba(71, 85, 105, 0.78), rgba(51, 65, 85, 0.7)) !important;
+    color: #f8fafc !important;
+  }
+
+  .premium-btn[data-variant="indigo"] {
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.8), rgba(67, 56, 202, 0.72)) !important;
+    color: #eef2ff !important;
+  }
+
+  .premium-btn[data-variant="green"] {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.8), rgba(5, 150, 105, 0.72)) !important;
+    color: #ecfdf5 !important;
+  }
+
+  .premium-btn[data-variant="orange"] {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.82), rgba(217, 119, 6, 0.74)) !important;
+    color: #fffbeb !important;
+  }
+
+  .premium-btn[data-variant="red"] {
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.82), rgba(185, 28, 28, 0.74)) !important;
+    color: #fef2f2 !important;
+  }
+
+  .donation-card {
+    background: linear-gradient(160deg, rgba(30, 41, 59, 0.74), rgba(30, 64, 89, 0.68)) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
   .ios-dock-surface {
     background: rgba(15, 23, 42, 0.8) !important;
     border-color: rgba(148, 163, 184, 0.28) !important;
