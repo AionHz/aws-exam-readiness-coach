@@ -1828,11 +1828,17 @@ const timerRow = (
                 size="md"
                 onClick={submit}
                 disabled={!selectedAnswer || examStatus === "finished"}
+                className="h-11 min-w-[116px] font-semibold"
               >
                 Submit
               </PremiumButton>
             ) : (
-              <PremiumButton variant="neutral" size="md" onClick={finished ? nextBatch : next}>
+              <PremiumButton
+                variant={finished ? "green" : "indigo"}
+                size="md"
+                onClick={finished ? nextBatch : next}
+                className="h-11 min-w-[116px] font-semibold"
+              >
                 {finished ? "Done" : "Next"}
               </PremiumButton>
             )}

@@ -39,7 +39,7 @@ export function PremiumButton({
       {...props}
       data-variant={variant}
       className={cx(
-        "premium-btn relative overflow-visible rounded-full font-medium backdrop-blur ring-1 transition active:scale-[0.97] select-none",
+        "premium-btn relative overflow-visible rounded-full font-medium backdrop-blur ring-1 transition active:scale-[0.97] select-none touch-manipulation",
         "shadow-[0_6px_18px_rgba(0,0,0,0.25)]",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/35",
         "disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100",
