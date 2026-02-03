@@ -1278,13 +1278,13 @@ const timerRow = (
 
   const dockRow = (
     <div className="mt-6 flex w-full justify-center">
-      <div className="ios-dock-surface flex flex-wrap items-center justify-center gap-3 rounded-full bg-white/8 px-4 py-3 shadow-lg ring-1 ring-white/15 backdrop-blur">
+      <div className="ios-dock-surface grid w-full max-w-[720px] grid-cols-2 gap-2 rounded-3xl bg-white/8 px-3 py-3 shadow-lg ring-1 ring-white/15 backdrop-blur sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-3 sm:rounded-full sm:px-4">
         <PremiumButton
           variant="indigo"
           size="sm"
           onClick={prev}
           disabled={activeIndex <= 0}
-          className="ios-dock-btn ios-dock-btn-indigo h-8 px-3 text-xs bg-indigo-500/32 ring-indigo-300/45 hover:bg-indigo-500/42 text-indigo-50"
+          className="ios-dock-btn ios-dock-btn-indigo h-9 w-full px-3 text-xs bg-indigo-500/32 ring-indigo-300/45 hover:bg-indigo-500/42 text-indigo-50 sm:h-8 sm:w-auto"
         >
           ← Prev Question
         </PremiumButton>
@@ -1293,7 +1293,7 @@ const timerRow = (
           size="sm"
           onClick={next}
           disabled={activeIndex >= totalQuestions - 1}
-          className="ios-dock-btn ios-dock-btn-indigo h-8 px-3 text-xs bg-indigo-500/32 ring-indigo-300/45 hover:bg-indigo-500/42 text-indigo-50"
+          className="ios-dock-btn ios-dock-btn-indigo h-9 w-full px-3 text-xs bg-indigo-500/32 ring-indigo-300/45 hover:bg-indigo-500/42 text-indigo-50 sm:h-8 sm:w-auto"
         >
           Next Question →
         </PremiumButton>
@@ -1302,7 +1302,7 @@ const timerRow = (
           size="sm"
           title="Randomize question order"
           onClick={reshuffle}
-          className="ios-dock-btn ios-dock-btn-neutral h-8 px-3 text-xs bg-slate-400/18 ring-slate-200/35 hover:bg-slate-400/28 text-white"
+          className="ios-dock-btn ios-dock-btn-neutral h-9 w-full px-3 text-xs bg-slate-400/18 ring-slate-200/35 hover:bg-slate-400/28 text-white sm:h-8 sm:w-auto"
         >
           Shuffle
         </PremiumButton>
@@ -1311,7 +1311,7 @@ const timerRow = (
           size="sm"
           onClick={resetTimer}
           disabled={timerRemaining === EXAM_SECONDS && timerOn === false}
-          className="ios-dock-btn ios-dock-btn-neutral h-8 px-3 text-xs bg-slate-400/18 ring-slate-200/35 hover:bg-slate-400/28 text-white"
+          className="ios-dock-btn ios-dock-btn-neutral h-9 w-full px-3 text-xs bg-slate-400/18 ring-slate-200/35 hover:bg-slate-400/28 text-white sm:h-8 sm:w-auto"
         >
           Timer Reset
         </PremiumButton>
@@ -1325,7 +1325,7 @@ const timerRow = (
               startExam();
             }
           }}
-          className="ios-dock-btn ios-dock-btn-green h-8 px-3 text-xs bg-emerald-500/30 ring-emerald-300/45 hover:bg-emerald-500/40 text-emerald-50"
+          className="ios-dock-btn ios-dock-btn-green h-9 w-full px-3 text-xs bg-emerald-500/30 ring-emerald-300/45 hover:bg-emerald-500/40 text-emerald-50 sm:h-8 sm:w-auto"
         >
           {examMode ? "Exit Exam Mode" : "Exam Mode"}
         </PremiumButton>
@@ -1335,7 +1335,7 @@ const timerRow = (
           onClick={() => (settingsOpen ? closeSettings() : openSettings())}
           aria-label="Settings"
           title="Settings"
-          className="ios-dock-btn ios-dock-btn-orange h-8 px-3 text-xs bg-amber-500/30 ring-amber-300/45 hover:bg-amber-500/40 text-amber-50"
+          className="ios-dock-btn ios-dock-btn-orange col-span-2 h-9 w-full px-3 text-xs bg-amber-500/30 ring-amber-300/45 hover:bg-amber-500/40 text-amber-50 sm:col-auto sm:h-8 sm:w-auto"
         >
           Settings
         </PremiumButton>
@@ -1522,16 +1522,29 @@ const timerRow = (
 
     return (
         <div className={`p-6 shadow-lg shadow-black/30 ${cardBase} ${cardHover}`}>
-          <div className="mb-4 flex items-start justify-between gap-3 text-xs text-white/70">
+          <div className="mb-4 text-xs text-white/70">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <span className={pill}>{currentQuestion.domain}</span>
-              <span className={pill}>Difficulty: {currentQuestion.difficulty}</span>
               <span className={pill}>
-                {reviewWrongMode
-                  ? `Wrong set: ${currentNumber}/${totalQuestions}`
-                  : reviewFlaggedMode
-                    ? `Flagged set: ${currentNumber}/${totalQuestions}`
-                    : `Batch progress: ${currentNumber}/${totalQuestions}`}
+                <span className="sm:hidden">{currentQuestion.difficulty}</span>
+                <span className="hidden sm:inline">Difficulty: {currentQuestion.difficulty}</span>
+              </span>
+              <span className={pill}>
+                <span className="sm:hidden">
+                  {reviewWrongMode
+                    ? `Wrong ${currentNumber}/${totalQuestions}`
+                    : reviewFlaggedMode
+                      ? `Flagged ${currentNumber}/${totalQuestions}`
+                      : `Progress ${currentNumber}/${totalQuestions}`}
+                </span>
+                <span className="hidden sm:inline">
+                  {reviewWrongMode
+                    ? `Wrong set: ${currentNumber}/${totalQuestions}`
+                    : reviewFlaggedMode
+                      ? `Flagged set: ${currentNumber}/${totalQuestions}`
+                      : `Batch progress: ${currentNumber}/${totalQuestions}`}
+                </span>
               </span>
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -1543,7 +1556,7 @@ const timerRow = (
                 {isVerifiedQuestion(currentQuestion) ? "Verified" : "Unverified"}
               </span>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
               <button
                 type="button"
                 disabled={wrongIds.length === 0}
@@ -1578,6 +1591,7 @@ const timerRow = (
               >
                 Flagged {flaggedIds.length}
               </button>
+            </div>
             </div>
           </div>
 
