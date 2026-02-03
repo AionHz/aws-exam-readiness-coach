@@ -463,8 +463,13 @@ function QuizPageContent() {
   const activeIndex = examMode
     ? Math.min(examIndex, Math.max(0, totalQuestions - 1))
     : Math.min(idxInBatch, Math.max(0, totalQuestions - 1));
+  const isReviewBatch = reviewMode !== "none" || batchFilter !== null;
   const finished =
-    examMode ? examStatus === "finished" || examComplete : idxInBatch >= activeQuestions.length;
+    examMode
+      ? examStatus === "finished" || examComplete
+      : isReviewBatch
+        ? false
+        : idxInBatch >= activeQuestions.length;
   const currentQuestion = hasQuestions ? activeQuestions[activeIndex] : null;
   const reviewWrongMode = reviewMode === "wrong";
   const reviewFlaggedMode = reviewMode === "flagged";
@@ -655,9 +660,12 @@ function QuizPageContent() {
 
   useEffect(() => {
     if (idxInBatch > activeQuestions.length) {
-      setIdxInBatch(activeQuestions.length);
+      const maxIndex = isReviewBatch
+        ? Math.max(0, activeQuestions.length - 1)
+        : activeQuestions.length;
+      setIdxInBatch(maxIndex);
     }
-  }, [idxInBatch, activeQuestions.length]);
+  }, [idxInBatch, activeQuestions.length, isReviewBatch]);
 
   // reset question index when filters/batch changes
   useEffect(() => {
@@ -848,6 +856,7 @@ function QuizPageContent() {
 
   function next() {
     if (examStatus === "finished") return;
+    if (!examMode && isReviewBatch && activeIndex >= Math.max(0, totalQuestions - 1)) return;
     setSelectedAnswer(null);
     setShowExplanation(false);
     if (examMode) {
@@ -879,7 +888,10 @@ function QuizPageContent() {
         });
       }
     } else {
-      setIdxInBatch((prev) => Math.min(prev + 1, batchQuestions.length));
+      const maxIndex = isReviewBatch
+        ? Math.max(0, activeQuestions.length - 1)
+        : activeQuestions.length;
+      setIdxInBatch((prev) => Math.min(prev + 1, maxIndex));
     }
     setSubmitted(false);
   }
@@ -1184,9 +1196,10 @@ function QuizPageContent() {
   }
 
   const isBatchComplete = finished;
+  const isAtLastQuestion = totalQuestions > 0 && activeIndex >= totalQuestions - 1;
 
   useEffect(() => {
-    if (examMode || reviewMode !== "none") return;
+    if (examMode || reviewMode !== "none" || batchFilter !== null) return;
     if (!isBatchComplete) {
       autoAdvancedRef.current = false;
       autoAdvanceCanceledRef.current = false;
@@ -1225,7 +1238,7 @@ function QuizPageContent() {
         autoAdvanceIntervalRef.current = null;
       }
     };
-  }, [examMode, reviewMode, isBatchComplete, nextBatch]);
+  }, [examMode, reviewMode, batchFilter, isBatchComplete, nextBatch]);
 
 const timerRow = (
   <div className="relative">
@@ -1837,6 +1850,7 @@ const timerRow = (
                 variant={finished ? "green" : "indigo"}
                 size="md"
                 onClick={finished ? nextBatch : next}
+                disabled={!finished && isReviewBatch && isAtLastQuestion}
                 className="h-11 min-w-[116px] font-semibold"
               >
                 {finished ? "Done" : "Next"}
@@ -2170,7 +2184,7 @@ const timerRow = (
             {questionCard}
           </section>
         </div>
-        {!examMode && reviewMode === "none" && isBatchComplete && (
+        {!examMode && reviewMode === "none" && batchFilter === null && isBatchComplete && (
           <div className="fixed bottom-4 left-1/2 z-30 w-[min(960px,92vw)] -translate-x-1/2 rounded-xl border border-white/10 bg-black/80 p-4 backdrop-blur shadow-lg shadow-black/40">
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-white/85">
               <div>
