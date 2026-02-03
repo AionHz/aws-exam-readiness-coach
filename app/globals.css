@@ -5,10 +5,7 @@
   color-scheme: dark;
 }
 
-html,
-body {
-  height: 100%;
-}
+/* Cursor rules moved to bottom for Safari-safe ordering */
 
 body {
   margin: 0;
@@ -249,50 +246,6 @@ a:active {
   }
 }
 
-@keyframes cursorRipple {
-  0% {
-    transform: translate(-50%, -50%) scale(0.2);
-    opacity: 0.55;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(2.8);
-    opacity: 0;
-  }
-}
-
-.cursor-ripple {
-  animation: cursorRipple 650ms ease-out forwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cursor-ripple {
-    animation: none !important;
-    opacity: 0 !important;
-  }
-}
-
-/* Cursor defaults for UI surfaces */
-.cursor-default {
-  cursor: default;
-}
-.cursor-pointer {
-  cursor: pointer;
-}
-
-.surface,
-.surface :where(p, span, div, li, label, small, strong, em, section, article) {
-  cursor: default;
-}
-.surface :is(input, textarea, select, [contenteditable="true"]) {
-  cursor: text;
-}
-
-a,
-button,
-[role="button"],
-[data-cursor="interactive"] {
-  cursor: pointer;
-}
 
 .readiness-figure {
   fill: #ffffff;
@@ -300,4 +253,71 @@ button,
   font-weight: 700;
   font-size: 34px;
   letter-spacing: -0.02em;
+}
+
+html,
+body {
+  cursor: default !important;
+}
+
+body * {
+  cursor: default;
+}
+
+a,
+button,
+[role="button"],
+summary,
+label[for],
+select,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+textarea {
+  cursor: text !important;
+}
+
+/* iOS Safari: reduce translucency for quiz dock controls to keep labels readable */
+@supports (-webkit-touch-callout: none) {
+  .ios-dock-surface {
+    background: rgba(15, 23, 42, 0.8) !important;
+    border-color: rgba(148, 163, 184, 0.28) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .ios-dock-btn {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  }
+
+  .ios-dock-btn-indigo {
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.62), rgba(67, 56, 202, 0.52)) !important;
+    color: #eef2ff !important;
+  }
+
+  .ios-dock-btn-neutral {
+    background: linear-gradient(180deg, rgba(71, 85, 105, 0.62), rgba(51, 65, 85, 0.52)) !important;
+    color: #f8fafc !important;
+  }
+
+  .ios-dock-btn-green {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.62), rgba(5, 150, 105, 0.52)) !important;
+    color: #ecfdf5 !important;
+  }
+
+  .ios-dock-btn-orange {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.62), rgba(217, 119, 6, 0.52)) !important;
+    color: #fffbeb !important;
+  }
+}
+
+* {
+  cursor: inherit;
 }

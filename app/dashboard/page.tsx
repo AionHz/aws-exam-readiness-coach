@@ -520,7 +520,7 @@ export default function DashboardPage() {
 
   return (
     <SurfaceShell variant="hero">
-      <div className="max-w-5xl mx-auto px-4 pb-6">
+      <div className="max-w-5xl mx-auto px-4 pb-6 pt-10">
         <div className="text-center">
           <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-zinc-100">
             Dashboard

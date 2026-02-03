@@ -4,7 +4,6 @@ import Image from "next/image";
 import TopNav from "./components/TopNav";
 import { Inter } from "next/font/google";
 import PremiumBackground from "./components/PremiumBackground";
-import PremiumCursor from "./components/PremiumCursor";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
@@ -35,7 +34,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={`surface ${inter.className} min-h-screen text-zinc-100`}>
         <PremiumBackground />
-        <PremiumCursor />
         <header className="sticky top-0 z-50">
           <div className="bg-slate-950/40 backdrop-blur-md border-b border-white/10">
             <div className="max-w-6xl mx-auto px-4 h-[72px] flex items-center">
@@ -67,7 +65,7 @@ export default function RootLayout({
           </div>
         </div>
 
-        <main className="pt-[112px]">{children}</main>
+        <main>{children}</main>
       </body>
     </html>
   );

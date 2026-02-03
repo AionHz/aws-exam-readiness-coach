@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense } from "react";
 import {
   useEffect,
@@ -239,6 +240,7 @@ function buildExamSet(pool: Question[], size = 65) {
 function QuizPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const [selectedAnswer, setSelectedAnswer] = useState<ChoiceId | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [score, setScore] = useState(0);
@@ -300,6 +302,19 @@ function QuizPageContent() {
   const activeDomain: Domain | null = isDomain(domainParam) ? domainParam : null;
 
   const activeBatch = Math.max(1, parsePositiveInt(batchParam, 1));
+  const batchFilter =
+    batchParam === "wrong" ? "wrong" : batchParam === "flagged" ? "flagged" : null;
+
+  const goToBatch = useCallback(
+    (batch: "wrong" | "flagged") => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("batch", batch);
+      params.delete("review");
+      params.delete("q");
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [pathname, router, searchParams]
+  );
 
   // --- BANK INSPECTION / HEALTH CHECKS ---
   const bankStats = useMemo(() => {
@@ -430,12 +445,18 @@ function QuizPageContent() {
     return examQueue.map((id) => questionMap.get(id)).filter(Boolean) as Question[];
   }, [examQueue, questionMap]);
 
+  const batchFilterQuestions = useMemo(() => {
+    if (!batchFilter) return null;
+    const ids = batchFilter === "wrong" ? wrongIds : flaggedIds;
+    return ids.map((id) => questionMap.get(id)).filter(Boolean) as Question[];
+  }, [batchFilter, flaggedIds, questionMap, wrongIds]);
+
   const activeQuestions =
     examMode && examQueue
       ? examQuestions
       : reviewQuestions
         ? reviewQuestions
-        : batchQuestions;
+        : batchFilterQuestions ?? batchQuestions;
 
   const hasQuestions = activeQuestions.length > 0;
   const totalQuestions = hasQuestions ? activeQuestions.length : 0;
@@ -1212,157 +1233,112 @@ const timerRow = (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
     <div className="flex items-center justify-center px-3 py-6 sm:py-7">
-      {/* Small premium pill around the time ONLY */}
-      <button
-        type="button"
-        onClick={() => setTimerOn(!timerOn)}
-        aria-label="Toggle timer (pause/resume)"
-        title="Click to pause/resume"
-        className="group relative select-none rounded-2xl px-6 py-3 tabular-nums
-                   text-5xl font-semibold tracking-tight text-white sm:text-6xl
-                   ring-1 ring-white/15
-                   bg-gradient-to-b from-white/12 to-white/5
-                   shadow-[0_14px_40px_rgba(0,0,0,0.35)]
-                   backdrop-blur
-                   transition
-                   hover:from-white/16 hover:to-white/8 hover:ring-white/25
-                   active:scale-[0.985]
-                   focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-      >
-        {/* soft “sheen” */}
-        <span className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-200 group-hover:opacity-100 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.22),transparent_60%)]" />
-        {/* subtle outer glow */}
-        <span className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-0 blur-2xl transition-opacity duration-200 group-hover:opacity-100 bg-white/10" />
+      <div className="relative flex flex-col items-center">
+        <div className="pointer-events-none select-none absolute left-1/2 top-[-70px] z-0 -translate-x-1/2 opacity-20 blur-[0.5px] drop-shadow-[0_18px_40px_rgba(0,0,0,0.35)] sm:opacity-25">
+          <Image
+            src="/overlays/cloud.png"
+            alt="Cloud overlay"
+            width={700}
+            height={700}
+            priority
+            className="h-auto w-[220px] sm:w-[300px] md:w-[360px]"
+          />
+        </div>
 
-        <span className="relative">
-          {formatTime(timerRemaining)}
-        </span>
-      </button>
+        {/* Small premium pill around the time ONLY */}
+        <button
+          type="button"
+          onClick={() => setTimerOn(!timerOn)}
+          aria-label="Toggle timer (pause/resume)"
+          title="Click to pause/resume"
+          className="group relative z-10 select-none rounded-2xl px-6 py-3 tabular-nums
+                     text-5xl font-semibold tracking-tight text-white sm:text-6xl
+                     ring-1 ring-white/15
+                     bg-gradient-to-b from-white/12 to-white/5
+                     shadow-[0_14px_40px_rgba(0,0,0,0.35)]
+                     backdrop-blur
+                     transition
+                     hover:from-white/16 hover:to-white/8 hover:ring-white/25
+                     active:scale-[0.985]
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+        >
+          {/* soft “sheen” */}
+          <span className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-200 group-hover:opacity-100 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.22),transparent_60%)]" />
+          {/* subtle outer glow */}
+          <span className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-0 blur-2xl transition-opacity duration-200 group-hover:opacity-100 bg-white/10" />
+
+          <span className="relative">
+            {formatTime(timerRemaining)}
+          </span>
+        </button>
+      </div>
     </div>
   </div>
 );
 
   const dockRow = (
-    <div className="flex items-center justify-center gap-2">
-      <div className="w-full overflow-x-auto">
-        <div className="flex items-center justify-center gap-2 whitespace-nowrap py-2 pr-6">
-          {examMode ? (
-            <PremiumButton
-              variant="green"
-              size="sm"
-              onClick={exitExam}
-              className="h-8 px-3 text-xs bg-emerald-500/15 border-emerald-300/20 hover:bg-emerald-500/22 text-emerald-50"
-            >
-              Exit Exam Mode
-            </PremiumButton>
-          ) : reviewMode !== "none" ? (
-            <>
-              <PremiumButton
-                variant="indigo"
-                size="sm"
-                onClick={exitReviewToPractice}
-                className="h-8 px-3 text-xs bg-indigo-500/15 border-indigo-300/20 hover:bg-indigo-500/22 text-white/90"
-              >
-                Exit review
-              </PremiumButton>
-              <PremiumButton
-                variant="orange"
-                size="sm"
-                onClick={() => (settingsOpen ? closeSettings() : openSettings())}
-                aria-label="Settings"
-                title="Settings"
-                className="h-8 px-3 text-xs bg-amber-500/16 border-amber-300/22 hover:bg-amber-500/24 text-amber-50"
-              >
-                Settings
-              </PremiumButton>
-            </>
-          ) : (
-            <>
-              <PremiumButton
-                variant="indigo"
-                size="sm"
-                onClick={prev}
-                disabled={activeIndex <= 0}
-                className="h-8 px-3 text-xs bg-indigo-500/15 border-indigo-300/20 hover:bg-indigo-500/22 text-white/90"
-              >
-                ← Prev Question
-              </PremiumButton>
-              <PremiumButton
-                variant="indigo"
-                size="sm"
-                onClick={next}
-                disabled={activeIndex >= totalQuestions - 1}
-                className="h-8 px-3 text-xs bg-indigo-500/15 border-indigo-300/20 hover:bg-indigo-500/22 text-white/90"
-              >
-                Next Question →
-              </PremiumButton>
-              <PremiumButton
-                variant="neutral"
-                size="sm"
-                onClick={resetTimer}
-                disabled={timerRemaining === EXAM_SECONDS && timerOn === false}
-                className="h-8 px-3 text-xs bg-white/6 border-white/12 hover:bg-white/10 text-white/85"
-              >
-                Timer Reset
-              </PremiumButton>
-              <PremiumButton
-                variant="neutral"
-                size="sm"
-                title="Randomize question order"
-                onClick={reshuffle}
-                className="h-8 px-3 text-xs bg-white/6 border-white/12 hover:bg-white/10 text-white/85"
-              >
-                Shuffle
-              </PremiumButton>
-              <PremiumButton
-                variant="green"
-                size="sm"
-                onClick={() => {
-                  if (examMode) {
-                    exitExam();
-                  } else {
-                    startExam();
-                  }
-                }}
-                className="h-8 px-3 text-xs bg-emerald-500/15 border-emerald-300/20 hover:bg-emerald-500/22 text-emerald-50"
-              >
-                Exam Mode
-              </PremiumButton>
-              <PremiumButton
-                variant="red"
-                size="sm"
-                onClick={goToWrongReview}
-                disabled={(wrongIds?.length ?? 0) === 0}
-                className={`h-8 px-3 text-xs bg-rose-500/15 border-rose-300/20 hover:bg-rose-500/22 text-rose-50 ${
-                  (wrongIds?.length ?? 0) === 0 ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                Wrong {wrongIds.length}
-              </PremiumButton>
-              <PremiumButton
-                variant="red"
-                size="sm"
-                onClick={goToFlaggedReview}
-                disabled={(flaggedIds?.length ?? 0) === 0}
-                className={`h-8 px-3 text-xs bg-rose-500/15 border-rose-300/20 hover:bg-rose-500/22 text-rose-50 ${
-                  (flaggedIds?.length ?? 0) === 0 ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                Flagged {flaggedIds.length}
-              </PremiumButton>
-              <PremiumButton
-                variant="orange"
-                size="sm"
-                onClick={() => (settingsOpen ? closeSettings() : openSettings())}
-                aria-label="Settings"
-                title="Settings"
-                className="h-8 px-3 text-xs bg-amber-500/16 border-amber-300/22 hover:bg-amber-500/24 text-amber-50"
-              >
-                Settings
-              </PremiumButton>
-            </>
-          )}
-        </div>
+    <div className="mt-6 flex w-full justify-center">
+      <div className="ios-dock-surface flex flex-wrap items-center justify-center gap-3 rounded-full bg-white/8 px-4 py-3 shadow-lg ring-1 ring-white/15 backdrop-blur">
+        <PremiumButton
+          variant="indigo"
+          size="sm"
+          onClick={prev}
+          disabled={activeIndex <= 0}
+          className="ios-dock-btn ios-dock-btn-indigo h-8 px-3 text-xs bg-indigo-500/32 ring-indigo-300/45 hover:bg-indigo-500/42 text-indigo-50"
+        >
+          ← Prev Question
+        </PremiumButton>
+        <PremiumButton
+          variant="indigo"
+          size="sm"
+          onClick={next}
+          disabled={activeIndex >= totalQuestions - 1}
+          className="ios-dock-btn ios-dock-btn-indigo h-8 px-3 text-xs bg-indigo-500/32 ring-indigo-300/45 hover:bg-indigo-500/42 text-indigo-50"
+        >
+          Next Question →
+        </PremiumButton>
+        <PremiumButton
+          variant="neutral"
+          size="sm"
+          title="Randomize question order"
+          onClick={reshuffle}
+          className="ios-dock-btn ios-dock-btn-neutral h-8 px-3 text-xs bg-slate-400/18 ring-slate-200/35 hover:bg-slate-400/28 text-white"
+        >
+          Shuffle
+        </PremiumButton>
+        <PremiumButton
+          variant="neutral"
+          size="sm"
+          onClick={resetTimer}
+          disabled={timerRemaining === EXAM_SECONDS && timerOn === false}
+          className="ios-dock-btn ios-dock-btn-neutral h-8 px-3 text-xs bg-slate-400/18 ring-slate-200/35 hover:bg-slate-400/28 text-white"
+        >
+          Timer Reset
+        </PremiumButton>
+        <PremiumButton
+          variant="green"
+          size="sm"
+          onClick={() => {
+            if (examMode) {
+              exitExam();
+            } else {
+              startExam();
+            }
+          }}
+          className="ios-dock-btn ios-dock-btn-green h-8 px-3 text-xs bg-emerald-500/30 ring-emerald-300/45 hover:bg-emerald-500/40 text-emerald-50"
+        >
+          {examMode ? "Exit Exam Mode" : "Exam Mode"}
+        </PremiumButton>
+        <PremiumButton
+          variant="orange"
+          size="sm"
+          onClick={() => (settingsOpen ? closeSettings() : openSettings())}
+          aria-label="Settings"
+          title="Settings"
+          className="ios-dock-btn ios-dock-btn-orange h-8 px-3 text-xs bg-amber-500/30 ring-amber-300/45 hover:bg-amber-500/40 text-amber-50"
+        >
+          Settings
+        </PremiumButton>
       </div>
     </div>
   );
@@ -1546,16 +1522,63 @@ const timerRow = (
 
     return (
         <div className={`p-6 shadow-lg shadow-black/30 ${cardBase} ${cardHover}`}>
-          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-white/70">
-            <span className={pill}>{currentQuestion.domain}</span>
-            <span className={pill}>Difficulty: {currentQuestion.difficulty}</span>
-            <span className={pill}>
-              {reviewWrongMode
-                ? `Wrong set: ${currentNumber}/${totalQuestions}`
-                : reviewFlaggedMode
-                  ? `Flagged set: ${currentNumber}/${totalQuestions}`
-                  : `Batch progress: ${currentNumber}/${totalQuestions}`}
-            </span>
+          <div className="mb-4 flex items-start justify-between gap-3 text-xs text-white/70">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={pill}>{currentQuestion.domain}</span>
+              <span className={pill}>Difficulty: {currentQuestion.difficulty}</span>
+              <span className={pill}>
+                {reviewWrongMode
+                  ? `Wrong set: ${currentNumber}/${totalQuestions}`
+                  : reviewFlaggedMode
+                    ? `Flagged set: ${currentNumber}/${totalQuestions}`
+                    : `Batch progress: ${currentNumber}/${totalQuestions}`}
+              </span>
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  isVerifiedQuestion(currentQuestion)
+                    ? "bg-emerald-500/20 text-emerald-200"
+                    : "bg-yellow-500/20 text-yellow-200"
+                }`}
+              >
+                {isVerifiedQuestion(currentQuestion) ? "Verified" : "Unverified"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                disabled={wrongIds.length === 0}
+                onClick={() => {
+                  if (wrongIds.length > 0) goToBatch("wrong");
+                }}
+                className={[
+                  "rounded-full px-3 py-1 text-xs font-medium ring-1 transition",
+                  wrongIds.length > 0
+                    ? "bg-red-500/20 text-red-300 ring-red-500/30 hover:bg-red-500/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-400/40"
+                    : "bg-red-500/10 text-red-300/40 ring-red-500/10 cursor-default opacity-50",
+                ].join(" ")}
+                aria-disabled={wrongIds.length === 0}
+                title={wrongIds.length === 0 ? "No wrong questions" : "Go to wrong questions batch"}
+              >
+                Wrong {wrongIds.length}
+              </button>
+              <button
+                type="button"
+                disabled={flaggedIds.length === 0}
+                onClick={() => {
+                  if (flaggedIds.length > 0) goToBatch("flagged");
+                }}
+                className={[
+                  "rounded-full px-3 py-1 text-xs font-medium ring-1 transition",
+                  flaggedIds.length > 0
+                    ? "bg-red-500/20 text-red-300 ring-red-500/30 hover:bg-red-500/30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-400/40"
+                    : "bg-red-500/10 text-red-300/40 ring-red-500/10 cursor-default opacity-50",
+                ].join(" ")}
+                aria-disabled={flaggedIds.length === 0}
+                title={flaggedIds.length === 0 ? "No flagged questions" : "Go to flagged questions batch"}
+              >
+                Flagged {flaggedIds.length}
+              </button>
+            </div>
           </div>
 
           <div className="mb-3">
@@ -1576,15 +1599,6 @@ const timerRow = (
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold">{currentQuestion.prompt}</h2>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                    isVerifiedQuestion(currentQuestion)
-                      ? "bg-emerald-500/20 text-emerald-200"
-                      : "bg-yellow-500/20 text-yellow-200"
-                  }`}
-                >
-                  {isVerifiedQuestion(currentQuestion) ? "Verified" : "Unverified"}
-                </span>
               </div>
               <button
                 className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
@@ -1717,63 +1731,74 @@ const timerRow = (
                       </span>
                     </div>
 
-                    <div className={`mt-4 p-4 ${cardBase}`}>
-                      <div className="mb-2 font-semibold text-indigo-200">
-                        Coaching
-                      </div>
-
-                      <div className="mb-3 text-sm text-white/85">
-                        <div className="mb-1 text-white/70">Exam tip</div>
-                        <div>💡 {getCoaching(currentQuestion)}</div>{" "}
-                      </div>
-                      {currentQuestion.memoryHook && (
-                        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-indigo-300/30 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-100">
-                          <span className="text-indigo-200">Memory hook</span>
-                          <span className="text-white/90">
-                            {currentQuestion.memoryHook}
-                          </span>
-                        </div>
-                      )}
-                      {selectedAnswer && selectedAnswer !== currentQuestion.answerId && (
-                        <div className="mt-4 rounded-xl border border-rose-400/30 bg-rose-500/5 p-4 backdrop-blur">
-                          <div className="mb-2 font-semibold text-rose-300">
-                            Why your answer was incorrect
-                          </div>
-
-                          <div className="text-sm text-white/85 leading-relaxed">
-                            {currentQuestion.whyWrong?.[selectedAnswer] ??
-                              fallbackWhyWrong(currentQuestion, selectedAnswer)}
+                    <div className="mt-5 overflow-hidden rounded-2xl border border-white/15 bg-[linear-gradient(145deg,rgba(16,23,39,0.94),rgba(18,33,52,0.86))] shadow-[0_16px_36px_rgba(3,8,20,0.4)]">
+                      <div className="border-b border-white/10 bg-gradient-to-r from-indigo-500/15 via-sky-400/10 to-transparent px-4 py-3">
+                        <div className="flex items-center justify-end gap-3">
+                          <div className="rounded-full border border-indigo-300/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-indigo-100">
+                            Coach Mode
                           </div>
                         </div>
-                      )}
+                      </div>
 
-                      <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/5 p-4 backdrop-blur">
-                        <div className="mb-2 font-semibold text-emerald-300">
-                          Why the correct answer works
+                      <div className="space-y-4 p-4">
+                        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
+                          <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.13em] text-white/55">
+                            Exam Tip
+                          </div>
+                          <div className="text-sm leading-relaxed text-white/90">
+                            <span className="mr-1">💡</span>
+                            {getCoaching(currentQuestion)}
+                          </div>
                         </div>
 
-                        <div className="text-sm text-white/85 leading-relaxed">
-                          {currentQuestion.whyCorrect}
-                        </div>
-                        {currentQuestion.sources && currentQuestion.sources.length > 0 && (
-                          <div className="mt-3 text-xs text-white/70">
-                            <div className="mb-1 font-semibold text-white/60">Sources</div>
-                            <div className="space-y-1">
-                              {currentQuestion.sources.map((s) => (
-                                <div key={s.url}>
-                                  <a
-                                    href={s.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-indigo-200 hover:text-indigo-100"
-                                  >
-                                    {s.title}
-                                  </a>
-                                </div>
-                              ))}
+                        {currentQuestion.memoryHook && (
+                          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-300/30 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-100">
+                            <span className="text-indigo-200">Memory hook</span>
+                            <span className="text-white/90">{currentQuestion.memoryHook}</span>
+                          </div>
+                        )}
+
+                        {selectedAnswer && selectedAnswer !== currentQuestion.answerId && (
+                          <div className="rounded-xl border border-rose-300/30 bg-[linear-gradient(160deg,rgba(244,63,94,0.12),rgba(244,63,94,0.04))] p-4">
+                            <div className="mb-2 text-sm font-semibold text-rose-200">
+                              Why your answer was incorrect
+                            </div>
+                            <div className="text-sm leading-relaxed text-white/90">
+                              {currentQuestion.whyWrong?.[selectedAnswer] ??
+                                fallbackWhyWrong(currentQuestion, selectedAnswer)}
                             </div>
                           </div>
                         )}
+
+                        <div className="rounded-xl border border-emerald-300/30 bg-[linear-gradient(160deg,rgba(16,185,129,0.12),rgba(16,185,129,0.04))] p-4">
+                          <div className="mb-2 text-sm font-semibold text-emerald-200">
+                            Why the correct answer works
+                          </div>
+                          <div className="text-sm leading-relaxed text-white/90">
+                            {currentQuestion.whyCorrect}
+                          </div>
+                          {currentQuestion.sources && currentQuestion.sources.length > 0 && (
+                            <div className="mt-4 border-t border-white/10 pt-3 text-xs text-white/70">
+                              <div className="mb-1 font-semibold uppercase tracking-wider text-white/60">
+                                Sources
+                              </div>
+                              <div className="space-y-1.5">
+                                {currentQuestion.sources.map((s) => (
+                                  <div key={s.url}>
+                                    <a
+                                      href={s.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-indigo-200 transition hover:text-indigo-100"
+                                    >
+                                      {s.title}
+                                    </a>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2088,15 +2113,37 @@ const timerRow = (
         )}
 
         <div className="space-y-4" data-no-advance>
-          {/* 1) TIMER BAR */}
-          <section className="px-0">
-            {timerRow}
-          </section>
+          <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">
+            {/* 1) TIMER BAR */}
+            <section className="px-0">
+              <div className="grid w-full place-items-center">
+                {timerRow}
+              </div>
+            </section>
 
-          {/* 2) TOOLKIT DOCK */}
-          <section className="relative overflow-visible rounded-2xl border border-white/10 bg-white/5 px-3 py-2 backdrop-blur">
-            {dockRow}
-          </section>
+            {/* 2) EXAM BAR / TOOLKIT DOCK */}
+            {examMode ? (
+              <div className="mt-4 w-full">
+                <div className="relative w-full rounded-2xl border border-white/10 bg-white/5 backdrop-blur">
+                  <div className="h-14" />
+                  <div className="absolute inset-0 grid place-items-center">
+                    <PremiumButton
+                      variant="green"
+                      size="sm"
+                      onClick={exitExam}
+                      className="h-8 px-3 text-xs bg-emerald-500/15 border-emerald-300/20 hover:bg-emerald-500/22 text-emerald-50"
+                    >
+                      Exit Exam Mode
+                    </PremiumButton>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <section className="w-full">
+                {dockRow}
+              </section>
+            )}
+          </div>
 
           {/* 3) QUESTION CARD */}
           <section className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-6 backdrop-blur">

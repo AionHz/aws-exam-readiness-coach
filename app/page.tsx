@@ -146,7 +146,7 @@ export default function Home() {
 
   return (
     <SurfaceShell variant="hero">
-      <div className="relative mx-auto max-w-5xl px-6 pb-10">
+      <div className="relative mx-auto max-w-5xl px-6 pb-10 pt-10">
           <div className="text-center cursor-default">
           <h1 className="text-5xl md:text-6xl font-semibold tracking-tight text-white">
             AWS Exam{" "}
@@ -163,9 +163,6 @@ export default function Home() {
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <LinkButton href="/quiz" variant="primary" size="md">
               Practice
-            </LinkButton>
-            <LinkButton href="/dashboard" variant="ghost" size="md">
-              Dashboard
             </LinkButton>
           </div>
 
@@ -261,21 +258,12 @@ export default function Home() {
               >
                 <div className="flex items-center gap-2 font-semibold">
                   {card.id === "btc" && (
-                    <svg viewBox="0 0 32 32" className="h-6 w-6" aria-hidden="true">
-                      <circle cx="16" cy="16" r="16" fill="#F59E0B" />
-                      <text
-                        x="16"
-                        y="16.5"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fontSize="18"
-                        fontWeight="800"
-                        fontFamily="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial"
-                        fill="#0b1020"
-                      >
-                        ₿
-                      </text>
-                    </svg>
+                    <span
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-[15px] font-extrabold leading-none text-slate-950"
+                      aria-hidden="true"
+                    >
+                      ₿
+                    </span>
                   )}
                   {card.id === "eth" && (
                     <svg
