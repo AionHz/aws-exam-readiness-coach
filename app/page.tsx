@@ -166,32 +166,45 @@ export default function Home() {
             </LinkButton>
           </div>
 
-          <div className={`mx-auto mt-6 max-w-2xl p-5 text-left ${cardBase} ${cardHover}`}>
-            <div className="grid items-center gap-6 md:grid-cols-[1fr_220px]">
-              <div>
-                <div className="text-sm font-semibold text-white/90">Snapshot</div>
-                <div className="mt-2 text-sm text-white/80">
-                  A quick pulse on your overall readiness. Practice to push this higher.
-                </div>
-                {wrongCount > 0 && (
-                  <div className="mt-3">
-                    <LinkButton href="/quiz?review=wrong" variant="ghost" size="md">
-                      Review Wrong ({wrongCount})
-                    </LinkButton>
+          <div className="mx-auto mt-6 max-w-2xl rounded-3xl border border-white/15 bg-[linear-gradient(145deg,rgba(15,23,42,0.82),rgba(17,45,67,0.72))] p-[1px] shadow-[0_20px_40px_rgba(3,8,20,0.35)]">
+            <div className={`rounded-[22px] p-5 text-left ${cardBase} ${cardHover}`}>
+              <div className="grid items-center gap-6 md:grid-cols-[1fr_220px]">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-white/70">
+                    <span className="h-1.5 w-1.5 rounded-full bg-sky-300/90" />
+                    Snapshot
                   </div>
-                )}
-              </div>
+                  <div className="mt-3 text-sm text-white/85">
+                    A quick pulse on your overall readiness. Practice to push this higher.
+                  </div>
 
-              <Link
-                href="/dashboard"
-                className={`flex flex-col items-center justify-center ${linkReset}`}
-              >
-                <ReadinessGauge percent={displayReadiness} label={confidenceLabel} />
-              </Link>
-            </div>
-            <div className="mt-3 text-xs text-white/50">
-              Estimate based on your practice history. The real exam uses scaled scoring (100–1000)
-              with 700 to pass.
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-indigo-300/80 via-sky-300/75 to-emerald-300/70"
+                      style={{ width: `${Math.max(0, Math.min(100, displayReadiness))}%` }}
+                    />
+                  </div>
+
+                  {wrongCount > 0 && (
+                    <div className="mt-3">
+                      <LinkButton href="/quiz?review=wrong" variant="ghost" size="md">
+                        Review Wrong ({wrongCount})
+                      </LinkButton>
+                    </div>
+                  )}
+                </div>
+
+                <Link
+                  href="/dashboard"
+                  className={`flex flex-col items-center justify-center ${linkReset}`}
+                >
+                  <ReadinessGauge percent={displayReadiness} label={confidenceLabel} />
+                </Link>
+              </div>
+              <div className="mt-3 text-xs text-white/50">
+                Estimate based on your practice history. The real exam uses scaled scoring (100–1000)
+                with 700 to pass.
+              </div>
             </div>
           </div>
           </div>

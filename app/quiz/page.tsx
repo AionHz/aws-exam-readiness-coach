@@ -1240,6 +1240,11 @@ function QuizPageContent() {
     };
   }, [examMode, reviewMode, batchFilter, isBatchComplete, nextBatch]);
 
+  const timerProgressPct = Math.max(
+    0,
+    Math.min(100, ((EXAM_SECONDS - timerRemaining) / EXAM_SECONDS) * 100)
+  );
+
 const timerRow = (
   <div className="relative">
     {/* subtle divider line between timer and dock */}
@@ -1258,30 +1263,37 @@ const timerRow = (
           />
         </div>
 
-        {/* Small premium pill around the time ONLY */}
+        {/* Premium timer shell */}
         <button
           type="button"
           onClick={() => setTimerOn(!timerOn)}
           aria-label="Toggle timer (pause/resume)"
           title="Click to pause/resume"
-          className="group relative z-10 select-none rounded-2xl px-6 py-3 tabular-nums
-                     text-5xl font-semibold tracking-tight text-white sm:text-6xl
-                     ring-1 ring-white/15
-                     bg-gradient-to-b from-white/12 to-white/5
-                     shadow-[0_14px_40px_rgba(0,0,0,0.35)]
-                     backdrop-blur
-                     transition
-                     hover:from-white/16 hover:to-white/8 hover:ring-white/25
-                     active:scale-[0.985]
+          className="group relative z-10 w-[min(92vw,390px)] select-none rounded-[28px] p-[1px]
+                     bg-[linear-gradient(130deg,rgba(129,140,248,0.55),rgba(56,189,248,0.32),rgba(16,185,129,0.35))]
+                     shadow-[0_20px_45px_rgba(3,8,20,0.45)]
+                     transition hover:scale-[1.01] active:scale-[0.99]
                      focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
         >
-          {/* soft “sheen” */}
-          <span className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-200 group-hover:opacity-100 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.22),transparent_60%)]" />
-          {/* subtle outer glow */}
-          <span className="pointer-events-none absolute -inset-6 -z-10 rounded-[28px] opacity-0 blur-2xl transition-opacity duration-200 group-hover:opacity-100 bg-white/10" />
+          <span className="relative block rounded-[27px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.78),rgba(15,23,42,0.62))] px-5 py-4 backdrop-blur">
+            <span className="pointer-events-none absolute inset-0 rounded-[27px] opacity-0 transition-opacity duration-200 group-hover:opacity-100 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.18),transparent_62%)]" />
+            <span className="relative flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-white/65">
+              <span>Exam Timer</span>
+              <span className={`rounded-full px-2 py-0.5 tracking-[0.12em] ${timerOn ? "bg-emerald-500/18 text-emerald-200" : "bg-amber-500/16 text-amber-200"}`}>
+                {timerOn ? "Running" : "Paused"}
+              </span>
+            </span>
 
-          <span className="relative">
-            {formatTime(timerRemaining)}
+            <span className="relative mt-2 block text-center tabular-nums text-5xl font-semibold tracking-tight text-white sm:text-6xl">
+              {formatTime(timerRemaining)}
+            </span>
+
+            <span className="relative mt-3 block h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <span
+                className="block h-full rounded-full bg-gradient-to-r from-indigo-300/80 via-sky-300/75 to-emerald-300/70 transition-all duration-500"
+                style={{ width: `${timerProgressPct}%` }}
+              />
+            </span>
           </span>
         </button>
       </div>

@@ -359,6 +359,16 @@ export default function DashboardPage() {
     attemptsTotal > 0 ? Math.round((correctTotal / attemptsTotal) * 100) : 0;
 
   const lastExamScaledScore = useMemo(() => getLastExamScaledScore(), [progressVersion]);
+  const examProgressPct = Math.max(0, Math.min(100, ((lastExamScaledScore - 100) / 900) * 100));
+  const passGap = Math.max(0, 700 - lastExamScaledScore);
+  const examBandLabel =
+    lastExamScaledScore >= 850
+      ? "Excellent"
+      : lastExamScaledScore >= 700
+        ? "Passing range"
+        : lastExamScaledScore >= 600
+          ? "Close"
+          : "Needs work";
 
   const domainRows = useMemo(() => {
     const rows = ALL_DOMAINS.map((domain) => {
@@ -568,17 +578,38 @@ export default function DashboardPage() {
           </div>
         </div>
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <div className={`p-5 select-none ${cardBase} ${cardHover} cursor-default`}>
-          <div className="text-xs uppercase tracking-widest text-white/50">Exam Score</div>
-          <div className="mt-4 flex items-center justify-center">
-            <div
-              className={`text-5xl font-semibold tracking-tight ${
-                lastExamScaledScore >= 700 ? "text-emerald-300" : "text-white"
-              }`}
-            >
-              {lastExamScaledScore}
+        <div className={`relative overflow-hidden p-5 select-none ${cardBase} ${cardHover} cursor-default`}>
+          <div className="pointer-events-none absolute -top-16 -right-12 h-44 w-44 rounded-full bg-indigo-400/20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-emerald-400/10 blur-3xl" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="text-xs uppercase tracking-widest text-white/50">Exam Score</div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-white/75">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80" />
+              Pass mark 700
             </div>
           </div>
+
+          <div className="mt-5 grid grid-cols-[112px_1fr] items-center gap-4">
+            <div className="relative mx-auto h-28 w-28 rounded-full p-[6px] [background:conic-gradient(rgba(52,211,153,0.9)_0_var(--score),rgba(99,102,241,0.75)_var(--score),rgba(255,255,255,0.12)_var(--score)_100%)]" style={{ "--score": `${examProgressPct}%` } as React.CSSProperties}>
+              <div className="flex h-full w-full flex-col items-center justify-center rounded-full border border-white/10 bg-[#0a1224]/90">
+                <div
+                  className={`text-3xl font-semibold tracking-tight ${
+                    lastExamScaledScore >= 700 ? "text-emerald-300" : "text-white"
+                  }`}
+                >
+                  {lastExamScaledScore}
+                </div>
+                <div className="mt-0.5 text-[10px] uppercase tracking-widest text-white/55">Scaled</div>
+              </div>
+            </div>
+            <div>
+              <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-white/80">
+                {examBandLabel}
+              </div>
+              <div className="mt-2 text-[11px] text-white/55">Range: 100–1000 • 65 questions • 90 minutes</div>
+            </div>
+          </div>
+
           <div className="mt-4">
             <div className="relative h-2.5 w-full rounded-full bg-white/10">
               <div
@@ -586,10 +617,7 @@ export default function DashboardPage() {
                   lastExamScaledScore >= 700 ? "bg-emerald-400/80" : "bg-indigo-400/70"
                 }`}
                 style={{
-                  width: `${Math.max(
-                    0,
-                    Math.min(1, (lastExamScaledScore - 100) / 900)
-                  ) * 100}%`,
+                  width: `${examProgressPct}%`,
                 }}
               />
               <div
@@ -598,14 +626,11 @@ export default function DashboardPage() {
               />
             </div>
           </div>
-          <div className="mt-3 space-y-1 text-[11px] text-white/60">
-            <div>Pass mark: 700</div>
-            <div>Score range: 100–1000</div>
-            <div>65 questions · 90 minutes</div>
-          </div>
+          <div className="mt-2 text-[11px] text-white/55">Progress to score ceiling</div>
         </div>
 
-        <div className={`p-5 select-none ${cardBase} ${cardHover} cursor-default`}>
+        <div className={`relative overflow-hidden p-5 select-none ${cardBase} ${cardHover} cursor-default`}>
+          <div className="pointer-events-none absolute -top-12 right-1/4 h-36 w-36 rounded-full bg-sky-400/10 blur-3xl" />
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70">
@@ -699,7 +724,7 @@ export default function DashboardPage() {
             <span className="text-zinc-200">Practice</span>.
           </div>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-black/20 p-3">
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase tracking-wide text-zinc-500">
                 <tr>

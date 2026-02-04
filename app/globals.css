@@ -255,6 +255,41 @@ a:active {
   letter-spacing: -0.02em;
 }
 
+@keyframes readinessSweep {
+  from {
+    transform: rotate(-90deg);
+  }
+  to {
+    transform: rotate(270deg);
+  }
+}
+
+@keyframes readinessOrbitPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.readiness-sweep {
+  transform-origin: center;
+  animation: readinessSweep 8s linear infinite;
+}
+
+.readiness-orbit {
+  animation: readinessOrbitPulse 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .readiness-sweep,
+  .readiness-orbit {
+    animation: none !important;
+  }
+}
+
 html,
 body {
   cursor: default !important;

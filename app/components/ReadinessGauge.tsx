@@ -36,7 +36,7 @@ export default function ReadinessGauge({
         viewBox={`0 0 ${size} ${size}`}
         role="img"
         aria-label={percent === null ? "Readiness not enough data" : `Readiness ${clamped} percent`}
-        className="drop-shadow-[0_0_18px_rgba(99,102,241,0.22)]"
+        className="readiness-gauge drop-shadow-[0_0_24px_rgba(56,189,248,0.22)]"
       >
         <defs>
           <linearGradient id={`${id}-grad`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -44,11 +44,28 @@ export default function ReadinessGauge({
             <stop offset="55%" stopColor="#22d3ee" />
             <stop offset="100%" stopColor="#8b5cf6" />
           </linearGradient>
+          <linearGradient id={`${id}-orbit`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(125,211,252,0.95)" />
+            <stop offset="100%" stopColor="rgba(52,211,153,0.85)" />
+          </linearGradient>
           <radialGradient id={`${id}-glass`} cx="50%" cy="35%" r="60%">
             <stop offset="0%" stopColor="rgba(255,255,255,0.16)" />
             <stop offset="100%" stopColor="rgba(11,16,32,0.78)" />
           </radialGradient>
         </defs>
+
+        <circle
+          cx={center}
+          cy={center}
+          r={r + 6}
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth={1.5}
+          fill="none"
+          className="readiness-orbit"
+          strokeDasharray={`${c * 0.12} ${c * 0.88}`}
+          strokeDashoffset={8}
+          transform={`rotate(-90 ${center} ${center})`}
+        />
 
         {ticks.map((t) => {
           const angle = (t / 100) * 360 - 90;
@@ -89,6 +106,19 @@ export default function ReadinessGauge({
           strokeDasharray={c}
           strokeDashoffset={offset}
           fill="none"
+          transform={`rotate(-90 ${center} ${center})`}
+        />
+
+        <circle
+          cx={center}
+          cy={center}
+          r={r}
+          stroke={`url(#${id}-orbit)`}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeDasharray={`${c * 0.08} ${c * 0.92}`}
+          fill="none"
+          className="readiness-sweep"
           transform={`rotate(-90 ${center} ${center})`}
         />
 
