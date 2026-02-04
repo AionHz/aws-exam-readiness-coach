@@ -1277,15 +1277,23 @@ const timerRow = (
         >
           <span className="relative block rounded-[27px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.78),rgba(15,23,42,0.62))] px-5 py-4 backdrop-blur">
             <span className="pointer-events-none absolute inset-0 rounded-[27px] opacity-0 transition-opacity duration-200 group-hover:opacity-100 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.18),transparent_62%)]" />
-            <span className="pointer-events-none absolute left-5 top-4 text-[10px] uppercase tracking-[0.18em] text-white/65">
-              Exam Timer
-            </span>
-            <span className={`pointer-events-none absolute right-5 top-4 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] ${timerOn ? "bg-emerald-500/18 text-emerald-200" : "bg-amber-500/16 text-amber-200"}`}>
+            <span className="relative grid grid-cols-[auto_1fr_auto] items-center">
+              <span
+                className={`pointer-events-none rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] opacity-0 ${timerOn ? "bg-emerald-500/18 text-emerald-200" : "bg-amber-500/16 text-amber-200"}`}
+                aria-hidden="true"
+              >
                 {timerOn ? "Running" : "Paused"}
+              </span>
+              <span className="pointer-events-none text-center text-[10px] uppercase tracking-[0.18em] text-white/65">
+                Exam Timer
+              </span>
+              <span className={`pointer-events-none rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] ${timerOn ? "bg-emerald-500/18 text-emerald-200" : "bg-amber-500/16 text-amber-200"}`}>
+                  {timerOn ? "Running" : "Paused"}
+              </span>
             </span>
 
-            <span className="relative mt-8 block text-center tabular-nums text-5xl font-semibold tracking-tight text-white sm:text-6xl">
-              {formatTime(timerRemaining)}
+            <span className="relative mt-2 flex w-full justify-center text-center tabular-nums text-5xl font-semibold tracking-tight text-white sm:text-6xl">
+              <span className="-translate-x-1 sm:translate-x-0">{formatTime(timerRemaining)}</span>
             </span>
 
             <span className="relative mt-3 block h-1.5 w-full overflow-hidden rounded-full bg-white/10">
