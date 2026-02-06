@@ -272,7 +272,10 @@ function QuizPageContent() {
   const autoExamStartRef = useRef(false);
   const listsLoadedRef = useRef(false);
   const reviewMode: "none" | "wrong" | "flagged" = feed === "main" ? "none" : feed;
-  const settingsDraftResolved: PracticeSettings = { ...DEFAULT_SETTINGS, ...settingsDraft };
+  const settingsDraftResolved: PracticeSettings = useMemo(
+    () => ({ ...DEFAULT_SETTINGS, ...settingsDraft }),
+    [settingsDraft]
+  );
 
   const resetReviewUI = useCallback(() => {
     setIdxInBatch(0);
@@ -317,19 +320,8 @@ function QuizPageContent() {
     const total = QUESTION_BANK.length;
     let verifiedCount = 0;
     let unverifiedCount = 0;
-
-    const byDomain: Record<Domain, number> = {
-      "Cloud Concepts": 0,
-      Security: 0,
-      Technology: 0,
-      "Billing & Pricing": 0,
-    };
-
-    const byDifficulty: Record<Difficulty, number> = {
-      Easy: 0,
-      Medium: 0,
-      Hard: 0,
-    };
+    const verifiedWithIssues: string[] = [];
+    const unverifiedReadyToVerify: string[] = [];
 
     const seenIds = new Set<string>();
     const dupIds: string[] = [];
@@ -338,8 +330,6 @@ function QuizPageContent() {
     const dupPrompts: string[] = [];
 
     for (const q of QUESTION_BANK) {
-      byDomain[q.domain] += 1;
-      byDifficulty[q.difficulty] += 1;
       if (q.verified) verifiedCount += 1;
       else unverifiedCount += 1;
 
@@ -350,10 +340,48 @@ function QuizPageContent() {
       const norm = q.prompt.trim().toLowerCase().replace(/\s+/g, " ");
       if (seenPrompts.has(norm)) dupPrompts.push(q.id);
       seenPrompts.add(norm);
+
+      const issues = getVerificationIssues(q);
+      if (q.verified && issues.length > 0) {
+        verifiedWithIssues.push(q.id);
+      }
+      if (!q.verified && isVerifiedQuestion(q)) {
+        unverifiedReadyToVerify.push(q.id);
+      }
     }
 
-    return { total, byDomain, byDifficulty, verifiedCount, unverifiedCount, dupIds, dupPrompts };
+    return {
+      total,
+      verifiedCount,
+      unverifiedCount,
+      dupIds,
+      dupPrompts,
+      verifiedWithIssues,
+      unverifiedReadyToVerify,
+    };
   }, []);
+
+  const draftPoolCount = useMemo(() => {
+    let list = QUESTION_BANK;
+
+    if (activeDomain) list = list.filter((q) => q.domain === activeDomain);
+
+    if (settingsDraftResolved.difficulty !== "all") {
+      const target = settingsDraftResolved.difficulty.toLowerCase();
+      list = list.filter((q) => q.difficulty.toLowerCase() === target);
+    }
+
+    if (!settingsDraftResolved.includeVerified && !settingsDraftResolved.includeUnverified) {
+      return 0;
+    }
+    if (settingsDraftResolved.includeVerified && !settingsDraftResolved.includeUnverified) {
+      list = list.filter((q) => q.verified === true);
+    } else if (!settingsDraftResolved.includeVerified && settingsDraftResolved.includeUnverified) {
+      list = list.filter((q) => q.verified === false);
+    }
+
+    return list.length;
+  }, [activeDomain, settingsDraftResolved]);
 
   const filteredAll = useMemo(() => {
     let list = QUESTION_BANK;
@@ -1916,44 +1944,63 @@ const timerRow = (
                     <div className="text-[11px] uppercase tracking-widest text-white/50">
                       Question Source
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <PremiumButton
-                        type="button"
-                        size="sm"
-                        variant={settingsDraftResolved.includeVerified ? "indigo" : "neutral"}
-                        onClick={() =>
-                          setSettingsDraft((prev) => ({
-                            ...prev,
-                            includeVerified: !settingsDraftResolved.includeVerified,
-                          }))
-                        }
-                        aria-pressed={settingsDraftResolved.includeVerified}
-                        className={settingsDraftResolved.includeVerified ? "" : "opacity-80"}
-                      >
-                        {settingsDraftResolved.includeVerified ? "✔" : "✕"} Include verified questions
-                      </PremiumButton>
-                      <PremiumButton
-                        type="button"
-                        size="sm"
-                        variant={settingsDraftResolved.includeUnverified ? "indigo" : "neutral"}
-                        onClick={() =>
-                          setSettingsDraft((prev) => ({
-                            ...prev,
-                            includeUnverified: !settingsDraftResolved.includeUnverified,
-                          }))
-                        }
-                        aria-pressed={settingsDraftResolved.includeUnverified}
-                        className={settingsDraftResolved.includeUnverified ? "" : "opacity-80"}
-                      >
-                        {settingsDraftResolved.includeUnverified ? "✔" : "✕"} Include unverified questions
-                      </PremiumButton>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <PremiumButton
+                          type="button"
+                          size="sm"
+                          variant={settingsDraftResolved.includeVerified ? "indigo" : "neutral"}
+                          onClick={() =>
+                            setSettingsDraft((prev) => ({
+                              ...prev,
+                              includeVerified: !settingsDraftResolved.includeVerified,
+                            }))
+                          }
+                          aria-pressed={settingsDraftResolved.includeVerified}
+                          className={`w-full justify-center ${settingsDraftResolved.includeVerified ? "" : "opacity-80"}`}
+                        >
+                          {settingsDraftResolved.includeVerified ? "✔" : "✕"} Include verified questions
+                        </PremiumButton>
+                        <div className="mt-2 text-center text-xs text-white/60">
+                          Verified:{" "}
+                          <span className="font-semibold text-emerald-300">{bankStats.verifiedCount}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <PremiumButton
+                          type="button"
+                          size="sm"
+                          variant={settingsDraftResolved.includeUnverified ? "indigo" : "neutral"}
+                          onClick={() =>
+                            setSettingsDraft((prev) => ({
+                              ...prev,
+                              includeUnverified: !settingsDraftResolved.includeUnverified,
+                            }))
+                          }
+                          aria-pressed={settingsDraftResolved.includeUnverified}
+                          className={`w-full justify-center ${settingsDraftResolved.includeUnverified ? "" : "opacity-80"}`}
+                        >
+                          {settingsDraftResolved.includeUnverified ? "✔" : "✕"} Include unverified questions
+                        </PremiumButton>
+                        <div className="mt-2 text-center text-xs text-white/60">
+                          Unverified:{" "}
+                          <span className="font-semibold text-amber-300">{bankStats.unverifiedCount}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-2 text-xs text-white/60">
-                      Verified:{" "}
-                      <span className="font-semibold text-emerald-300">{bankStats.verifiedCount}</span>
-                      {" • "}
-                      Unverified:{" "}
-                      <span className="font-semibold text-amber-300">{bankStats.unverifiedCount}</span>
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                        <div className="text-[11px] uppercase tracking-widest text-white/50">Total questions</div>
+                        <div className="mt-1 text-lg font-semibold text-white">{bankStats.total}</div>
+                      </div>
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                        <div className="text-[11px] uppercase tracking-widest text-white/50">
+                          Current pool
+                        </div>
+                        <div className="mt-1 text-lg font-semibold text-white">{draftPoolCount}</div>
+                        <div className="text-[11px] text-white/50">With current settings draft</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2028,62 +2075,76 @@ const timerRow = (
                 <details className={`mt-2 p-5 ${cardBase}`}>
                   <summary className="cursor-pointer select-none">
                     <PremiumButton type="button" variant="neutral" size="sm">
-                      Question Bank Inspector{" "}
-                      <span className="ml-2 text-xs text-white/50">(debug)</span>
+                      Debugger{" "}
+                      <span className="ml-2 text-xs text-white/50">(question bank)</span>
                       <span className="ml-2 text-xs text-white/60">(expand/collapse)</span>
                     </PremiumButton>
                   </summary>
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <div className="text-sm font-semibold text-white/90">Counts</div>
+                      <div className="text-sm font-semibold text-white/90">Runtime</div>
                       <div className="mt-3 text-sm text-white/80 space-y-2">
                         <div>
-                          <span className="text-white/60">Total questions:</span>{" "}
-                          <span className="font-semibold">{bankStats.total}</span>
+                          <span className="text-white/60">Mode:</span>{" "}
+                          <span className="font-semibold">
+                            {examMode
+                              ? "Exam"
+                              : reviewMode === "wrong"
+                                ? "Review (wrong)"
+                                : reviewMode === "flagged"
+                                  ? "Review (flagged)"
+                                  : "Practice"}
+                          </span>
                         </div>
                         <div>
-                          <span className="text-white/60">Current pool (after filters):</span>{" "}
-                          <span className="font-semibold">{totalInPool}</span>
+                          <span className="text-white/60">Domain filter:</span>{" "}
+                          <span className="font-semibold">{activeDomain ?? "All domains"}</span>
                         </div>
                         <div>
-                          <span className="text-white/60">Batch size:</span>{" "}
-                          <span className="font-semibold">{BATCH_SIZE}</span>{" "}
-                          <span className="text-white/60">
-                            → batches: <span className="font-semibold">{batchCount}</span>
+                          <span className="text-white/60">Difficulty filter:</span>{" "}
+                          <span className="font-semibold capitalize">
+                            {settingsDraftResolved.difficulty}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-white/60">Sources:</span>{" "}
+                          <span className="font-semibold">
+                            {settingsDraftResolved.includeVerified
+                              ? "Verified"
+                              : ""}
+                            {settingsDraftResolved.includeVerified && settingsDraftResolved.includeUnverified
+                              ? " + "
+                              : ""}
+                            {settingsDraftResolved.includeUnverified
+                              ? "Unverified"
+                              : ""}
+                            {!settingsDraftResolved.includeVerified &&
+                              !settingsDraftResolved.includeUnverified &&
+                              "None"}
                           </span>
                         </div>
                       </div>
-
                       <div className="mt-4">
-                        <div className="text-xs font-semibold text-white/70 mb-2">By Domain</div>
-                        <ul className="text-sm text-white/80 space-y-1">
-                          {ALL_DOMAINS.map((d) => (
-                            <li key={d} className="flex justify-between">
-                              <span>{d}</span>
-                              <span className="text-white/90 font-semibold">{bankStats.byDomain[d]}</span>
-                            </li>
+                        <div className="text-xs font-semibold text-white/70 mb-2">
+                          Active question IDs ({batchQuestions.length})
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {batchQuestions.map((q) => (
+                            <span
+                              key={q.id}
+                              className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/80"
+                              title={q.prompt}
+                            >
+                              {q.id}
+                            </span>
                           ))}
-                        </ul>
-                      </div>
-
-                      <div className="mt-4">
-                        <div className="text-xs font-semibold text-white/70 mb-2">By Difficulty</div>
-                        <ul className="text-sm text-white/80 space-y-1">
-                          {ALL_DIFFICULTIES.map((dif) => (
-                            <li key={dif} className="flex justify-between">
-                              <span>{dif}</span>
-                              <span className="text-white/90 font-semibold">
-                                {bankStats.byDifficulty[dif]}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
+                        </div>
                       </div>
                     </div>
 
                     <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <div className="text-sm font-semibold text-white/90">Quality checks</div>
+                      <div className="text-sm font-semibold text-white/90">Integrity checks</div>
 
                       <div className="mt-3 text-sm text-white/80 space-y-2">
                         <div>
@@ -2098,7 +2159,7 @@ const timerRow = (
                         </div>
 
                         <div>
-                          <span className="text-white/60">Duplicate prompts (approx):</span>{" "}
+                          <span className="text-white/60">Duplicate prompts:</span>{" "}
                           {bankStats.dupPrompts.length === 0 ? (
                             <span className="text-emerald-300 font-semibold">None</span>
                           ) : (
@@ -2108,25 +2169,28 @@ const timerRow = (
                           )}
                         </div>
 
-                        <div className="text-xs text-white/60">
-                          When you add new questions, keep IDs unique and avoid reusing the same prompt text.
-                        </div>
-                      </div>
-
-                      <div className="mt-4">
-                        <div className="text-xs font-semibold text-white/70 mb-2">
-                          This batch’s question IDs ({batchQuestions.length})
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {batchQuestions.map((q) => (
-                            <span
-                              key={q.id}
-                              className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/80"
-                              title={q.prompt}
-                            >
-                              {q.id}
+                        <div>
+                          <span className="text-white/60">Verified entries with missing verification data:</span>{" "}
+                          {bankStats.verifiedWithIssues.length === 0 ? (
+                            <span className="text-emerald-300 font-semibold">None</span>
+                          ) : (
+                            <span className="text-rose-300 font-semibold">
+                              {bankStats.verifiedWithIssues.join(", ")}
                             </span>
-                          ))}
+                          )}
+                        </div>
+
+                        <div>
+                          <span className="text-white/60">
+                            Unverified entries that already pass verification checks:
+                          </span>{" "}
+                          {bankStats.unverifiedReadyToVerify.length === 0 ? (
+                            <span className="text-emerald-300 font-semibold">None</span>
+                          ) : (
+                            <span className="text-amber-300 font-semibold">
+                              {bankStats.unverifiedReadyToVerify.join(", ")}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

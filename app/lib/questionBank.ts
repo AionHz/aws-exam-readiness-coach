@@ -5393,6 +5393,698 @@ export const QUESTION_BANK: Question[] = [
     ],
     verified: true,
   },
+  {
+    id: "clf-176",
+    domain: "Cloud Concepts",
+    difficulty: "Easy",
+    prompt:
+      "Which AWS tool helps you review architectures against AWS best practices and provides improvement recommendations?",
+    choices: [
+      { id: "A", text: "AWS Well-Architected Tool" },
+      { id: "B", text: "AWS Trusted Advisor" },
+      { id: "C", text: "AWS CloudTrail" },
+      { id: "D", text: "AWS Artifact" },
+    ],
+    answerId: "A",
+    explanation:
+      "The AWS Well-Architected Tool is designed to evaluate workloads against Well-Architected Framework best practices.",
+    coaching:
+      "If the stem says architecture review against AWS pillars, think Well-Architected Tool.",
+    whyCorrect:
+      "AWS Well-Architected Tool runs structured reviews across framework pillars and produces prioritized improvement guidance for workloads.",
+    whyWrong: {
+      B: "Trusted Advisor gives account-level checks, not a full Well-Architected workload review workflow.",
+      C: "CloudTrail records API activity for auditing; it does not perform architecture best-practice reviews.",
+      D: "Artifact provides compliance documents and agreements, not architecture assessments.",
+    },
+    memoryHook: "Best-practice architecture review = Well-Architected Tool.",
+    testedConcepts: ["Well-Architected Framework", "Architecture review"],
+    sources: [
+      {
+        title: "AWS Well-Architected Tool",
+        url: "https://docs.aws.amazon.com/wellarchitected/latest/userguide/intro.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-177",
+    domain: "Billing & Pricing",
+    difficulty: "Easy",
+    prompt:
+      "Before deploying a new workload, which AWS tool should be used to estimate expected monthly costs?",
+    choices: [
+      { id: "A", text: "AWS Pricing Calculator" },
+      { id: "B", text: "AWS Cost Explorer" },
+      { id: "C", text: "AWS Budgets" },
+      { id: "D", text: "Amazon CloudWatch" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS Pricing Calculator estimates projected costs based on planned service usage.",
+    coaching:
+      "Planning cost before launch points to Pricing Calculator, not post-spend analytics tools.",
+    whyCorrect:
+      "AWS Pricing Calculator is built for pre-deployment cost estimation by modeling planned usage of AWS services.",
+    whyWrong: {
+      B: "Cost Explorer analyzes historical and current costs after usage occurs.",
+      C: "Budgets defines spending thresholds and alerts but does not replace upfront estimation modeling.",
+      D: "CloudWatch monitors metrics and logs, not billing estimates.",
+    },
+    memoryHook: "Estimate first, then build = Pricing Calculator.",
+    testedConcepts: ["Cost estimation", "AWS pricing tools"],
+    sources: [
+      {
+        title: "AWS Pricing Calculator",
+        url: "https://aws.amazon.com/aws-cost-management/aws-pricing-calculator/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-178",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "A team needs to copy data repeatedly from on-premises NFS storage to Amazon S3 over a network link. Which AWS service is purpose-built for this?",
+    choices: [
+      { id: "A", text: "AWS DataSync" },
+      { id: "B", text: "AWS Snowcone" },
+      { id: "C", text: "AWS Storage Gateway Tape Gateway" },
+      { id: "D", text: "AWS Transfer Family" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS DataSync is designed for scheduled and recurring online data transfers between on-premises storage and AWS services like S3.",
+    coaching:
+      "Recurring online migration/sync of file data to S3 usually means DataSync.",
+    whyCorrect:
+      "DataSync provides managed, automated, and accelerated data movement from on-premises file/object storage to AWS destinations including Amazon S3.",
+    whyWrong: {
+      B: "Snowcone is an edge device for offline/portable transfer, not the primary recurring online sync service.",
+      C: "Tape Gateway emulates virtual tape libraries for backup workflows, not general recurring file sync to S3.",
+      D: "Transfer Family provides managed file transfer protocols (SFTP/FTPS/FTP), not broad data synchronization workflows.",
+    },
+    memoryHook: "Recurring data move to S3 = DataSync.",
+    testedConcepts: ["Data migration", "Storage transfer services"],
+    sources: [
+      {
+        title: "AWS DataSync User Guide",
+        url: "https://docs.aws.amazon.com/datasync/latest/userguide/what-is-datasync.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-179",
+    domain: "Security",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service centralizes and prioritizes security findings from services such as GuardDuty, Inspector, and Macie?",
+    choices: [
+      { id: "A", text: "AWS Security Hub" },
+      { id: "B", text: "AWS CloudTrail" },
+      { id: "C", text: "AWS Shield Advanced" },
+      { id: "D", text: "AWS Key Management Service (KMS)" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS Security Hub aggregates findings from AWS and partner security services into a unified view.",
+    coaching:
+      "If the requirement is one security dashboard across tools, pick Security Hub.",
+    whyCorrect:
+      "Security Hub ingests, normalizes, and prioritizes findings across enabled security services to support centralized posture management.",
+    whyWrong: {
+      B: "CloudTrail records API activity for auditing, not consolidated security findings management.",
+      C: "Shield Advanced provides enhanced DDoS protection, not cross-service findings aggregation.",
+      D: "KMS manages encryption keys and access controls for cryptographic operations.",
+    },
+    memoryHook: "Many security findings, one pane = Security Hub.",
+    testedConcepts: ["Security visibility", "AWS security services"],
+    sources: [
+      {
+        title: "AWS Security Hub",
+        url: "https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-securityhub.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-180",
+    domain: "Technology",
+    difficulty: "Easy",
+    prompt:
+      "Which AWS storage service provides persistent block storage volumes for Amazon EC2 instances?",
+    choices: [
+      { id: "A", text: "Amazon S3" },
+      { id: "B", text: "Amazon EBS" },
+      { id: "C", text: "Amazon EFS" },
+      { id: "D", text: "Amazon DynamoDB" },
+    ],
+    answerId: "B",
+    explanation:
+      "Amazon EBS provides persistent block-level storage designed for use with EC2 instances.",
+    coaching:
+      "Storage type mapping: object=S3, block=EBS, shared file=EFS.",
+    whyCorrect:
+      "EBS volumes are durable block devices attached to EC2 instances and commonly used for boot and application volumes.",
+    whyWrong: {
+      A: "S3 is object storage accessed via API, not attached block storage.",
+      C: "EFS is shared file storage (NFS), not block volumes for instance disks.",
+      D: "DynamoDB is a managed NoSQL database service.",
+    },
+    memoryHook: "EC2 disk volume = EBS.",
+    testedConcepts: ["AWS storage fundamentals", "EC2 storage options"],
+    sources: [
+      {
+        title: "Amazon EBS User Guide",
+        url: "https://docs.aws.amazon.com/ebs/latest/userguide/what-is-ebs.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-181",
+    domain: "Cloud Concepts",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service provides account-specific alerts about AWS events that may affect your resources?",
+    choices: [
+      { id: "A", text: "AWS Health Dashboard (Personal Health Dashboard)" },
+      { id: "B", text: "AWS Service Health Dashboard" },
+      { id: "C", text: "AWS Trusted Advisor" },
+      { id: "D", text: "Amazon CloudWatch Alarms" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS Health Dashboard provides personalized visibility into AWS events impacting resources in your account.",
+    coaching:
+      "Personalized service-impact events for your account map to AWS Health Dashboard.",
+    whyCorrect:
+      "AWS Health delivers account-specific and actionable event notifications, unlike global status-only dashboards.",
+    whyWrong: {
+      B: "Service Health Dashboard shows broad service status, not account-specific impact details.",
+      C: "Trusted Advisor provides recommendations and checks, not personalized AWS service event alerts.",
+      D: "CloudWatch Alarms trigger on metrics you define, not AWS platform event advisories.",
+    },
+    memoryHook: "My account impact events = AWS Health.",
+    testedConcepts: ["Monitoring and operations", "AWS Health"],
+    sources: [
+      {
+        title: "What is AWS Health?",
+        url: "https://docs.aws.amazon.com/health/latest/ug/what-is-aws-health.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-182",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "A company wants discounted pricing for steady compute usage across Amazon EC2, AWS Fargate, and AWS Lambda without committing to specific EC2 instance families. Which option is best?",
+    choices: [
+      { id: "A", text: "Compute Savings Plans" },
+      { id: "B", text: "EC2 Instance Savings Plans" },
+      { id: "C", text: "Standard Reserved Instances" },
+      { id: "D", text: "Spot Instances" },
+    ],
+    answerId: "A",
+    explanation:
+      "Compute Savings Plans provide flexible discounts across EC2, Fargate, and Lambda for committed usage.",
+    coaching:
+      "Need flexibility across multiple compute services with commitment discounts: Compute Savings Plans.",
+    whyCorrect:
+      "Compute Savings Plans apply committed-spend discounts broadly across eligible compute services and are less restrictive than EC2 Instance Savings Plans or RIs.",
+    whyWrong: {
+      B: "EC2 Instance Savings Plans are narrower because they are tied to specific EC2 instance families in a Region.",
+      C: "Standard Reserved Instances provide EC2 discounts but do not cover Lambda/Fargate and are less flexible.",
+      D: "Spot provides deep discounts but no guaranteed continuity and no committed usage model.",
+    },
+    memoryHook: "Cross-service compute discount = Compute Savings Plans.",
+    testedConcepts: ["Savings Plans", "AWS pricing models"],
+    sources: [
+      {
+        title: "Savings Plans User Guide",
+        url: "https://docs.aws.amazon.com/savingsplans/latest/userguide/what-is-savings-plans.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-183",
+    domain: "Security",
+    difficulty: "Easy",
+    prompt:
+      "A company uses an external identity provider and needs centralized workforce access to multiple AWS accounts using temporary credentials. Which AWS service should it use?",
+    choices: [
+      { id: "A", text: "AWS IAM Identity Center" },
+      { id: "B", text: "Long-term IAM access keys shared across users" },
+      { id: "C", text: "Amazon Cognito user pools" },
+      { id: "D", text: "AWS Secrets Manager" },
+    ],
+    answerId: "A",
+    explanation:
+      "IAM Identity Center provides centralized workforce authentication and authorization across multiple AWS accounts.",
+    coaching:
+      "Workforce SSO across AWS accounts with temporary role-based access means IAM Identity Center.",
+    whyCorrect:
+      "IAM Identity Center integrates with external identity providers and maps users/groups to permission sets that grant temporary role access in target AWS accounts.",
+    whyWrong: {
+      B: "Shared long-term access keys are a security anti-pattern and do not provide centralized workforce governance.",
+      C: "Cognito is typically for application end-user identity, not enterprise workforce multi-account access administration.",
+      D: "Secrets Manager stores and rotates secrets; it is not an identity federation and SSO service.",
+    },
+    memoryHook: "Workforce SSO on AWS = IAM Identity Center.",
+    testedConcepts: ["Identity and access management", "Federation"],
+    sources: [
+      {
+        title: "What is AWS IAM Identity Center?",
+        url: "https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-184",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "An application must send one notification to multiple subscribers (email, SQS, and Lambda). Which AWS service is the best fit?",
+    choices: [
+      { id: "A", text: "Amazon SQS" },
+      { id: "B", text: "Amazon SNS" },
+      { id: "C", text: "Amazon MQ" },
+      { id: "D", text: "AWS Step Functions" },
+    ],
+    answerId: "B",
+    explanation:
+      "Amazon SNS is a pub/sub service that fan-outs messages to multiple subscriber endpoints.",
+    coaching:
+      "Fan-out messaging to many endpoints points to SNS, not SQS queues alone.",
+    whyCorrect:
+      "SNS topics deliver published messages to multiple subscribed protocols and services, enabling one-to-many event distribution.",
+    whyWrong: {
+      A: "SQS is primarily a queue for decoupling consumers, not one-to-many fan-out by itself.",
+      C: "Amazon MQ provides managed message brokers, but SNS is the native AWS pub/sub fan-out service for this pattern.",
+      D: "Step Functions orchestrates workflows and state transitions rather than topic-based notification fan-out.",
+    },
+    memoryHook: "One message to many targets = SNS.",
+    testedConcepts: ["Messaging patterns", "SNS vs SQS"],
+    sources: [
+      {
+        title: "Amazon SNS Developer Guide",
+        url: "https://docs.aws.amazon.com/sns/latest/dg/welcome.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-185",
+    domain: "Cloud Concepts",
+    difficulty: "Hard",
+    prompt:
+      "A web application running on EC2 must remain available if a single Availability Zone fails. Which architecture best meets this requirement?",
+    choices: [
+      { id: "A", text: "One EC2 instance in one AZ with larger instance size" },
+      { id: "B", text: "EC2 Auto Scaling group across multiple AZs behind an Application Load Balancer" },
+      { id: "C", text: "One EC2 instance with daily EBS snapshots" },
+      { id: "D", text: "One EC2 instance in one AZ with CloudWatch alarms only" },
+    ],
+    answerId: "B",
+    explanation:
+      "Distributing instances across multiple AZs behind an ALB increases fault tolerance and availability.",
+    coaching:
+      "For AZ-failure resilience, look for multi-AZ + load balancing + automatic replacement.",
+    whyCorrect:
+      "An Auto Scaling group spanning AZs plus an ALB routes traffic to healthy targets and maintains capacity even during single-AZ failures.",
+    whyWrong: {
+      A: "Bigger single-instance sizing does not remove the single-AZ single-instance failure domain.",
+      C: "Snapshots help recovery but do not keep the application available during an AZ outage.",
+      D: "Alarms notify issues but do not provide multi-AZ redundancy or automatic failover capacity.",
+    },
+    memoryHook: "HA on EC2 = ALB + Multi-AZ Auto Scaling.",
+    testedConcepts: ["High availability", "Fault tolerance", "Multi-AZ design"],
+    sources: [
+      {
+        title: "Benefits of Amazon EC2 Auto Scaling",
+        url: "https://docs.aws.amazon.com/autoscaling/ec2/userguide/auto-scaling-benefits.html",
+      },
+      {
+        title: "Application Load Balancers",
+        url: "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-186",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "Finance needs a consistent business-unit view of AWS costs across many accounts, even when teams use inconsistent tags. Which feature best solves this?",
+    choices: [
+      { id: "A", text: "AWS Cost Categories" },
+      { id: "B", text: "Consolidated billing only" },
+      { id: "C", text: "AWS Budgets" },
+      { id: "D", text: "AWS CloudTrail Lake" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS Cost Categories lets you define business mappings to group and report costs consistently across accounts and dimensions.",
+    coaching:
+      "When finance asks for normalized business reporting across accounts, use Cost Categories.",
+    whyCorrect:
+      "Cost Categories create custom grouping logic for cost data (such as mapping multiple accounts/tags/services into business units) for consistent showback and reporting.",
+    whyWrong: {
+      B: "Consolidated billing combines charges but does not create custom business grouping logic by itself.",
+      C: "Budgets alerts against thresholds; it does not solve taxonomy normalization across inconsistent tags.",
+      D: "CloudTrail Lake stores and analyzes API audit events, not cost allocation groupings.",
+    },
+    memoryHook: "Finance taxonomy for AWS spend = Cost Categories.",
+    testedConcepts: ["Cost governance", "Showback/chargeback"],
+    sources: [
+      {
+        title: "Organizing your costs using AWS Cost Categories",
+        url: "https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/manage-cost-categories.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-187",
+    domain: "Security",
+    difficulty: "Hard",
+    prompt:
+      "Which AWS service helps identify resources such as Amazon S3 buckets that are shared with external principals through resource policies?",
+    choices: [
+      { id: "A", text: "AWS IAM Access Analyzer" },
+      { id: "B", text: "AWS Config" },
+      { id: "C", text: "Amazon GuardDuty" },
+      { id: "D", text: "AWS Trusted Advisor" },
+    ],
+    answerId: "A",
+    explanation:
+      "IAM Access Analyzer uses reasoning to detect external access granted through policies.",
+    coaching:
+      "If the prompt says unintended external access from policies, choose Access Analyzer.",
+    whyCorrect:
+      "IAM Access Analyzer continuously evaluates resource policies and identifies resources that can be accessed from outside your account or organization.",
+    whyWrong: {
+      B: "Config tracks configuration compliance over time but is not the primary policy-reasoning tool for external principal access analysis.",
+      C: "GuardDuty detects suspicious activity and threats; it does not enumerate policy-granted external access relationships.",
+      D: "Trusted Advisor provides best-practice checks, not deep policy analyzers for external access paths.",
+    },
+    memoryHook: "External policy exposure check = Access Analyzer.",
+    testedConcepts: ["Policy analysis", "Least privilege and governance"],
+    sources: [
+      {
+        title: "What is IAM Access Analyzer?",
+        url: "https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-188",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service allows SQL queries directly on data stored in Amazon S3 without managing infrastructure?",
+    choices: [
+      { id: "A", text: "Amazon Athena" },
+      { id: "B", text: "Amazon RDS" },
+      { id: "C", text: "Amazon Redshift (provisioned)" },
+      { id: "D", text: "Amazon EC2" },
+    ],
+    answerId: "A",
+    explanation:
+      "Amazon Athena is a serverless interactive query service for data in S3 using standard SQL.",
+    coaching:
+      "Ad-hoc SQL on S3 with no servers to manage is the classic Athena use case.",
+    whyCorrect:
+      "Athena executes SQL queries directly against data in S3 and is serverless, eliminating database or cluster administration for this pattern.",
+    whyWrong: {
+      B: "RDS is managed relational database infrastructure; data must be loaded into a DB engine.",
+      C: "Provisioned Redshift requires warehouse infrastructure management and is not the simplest direct serverless S3 query choice here.",
+      D: "EC2 is raw compute and would require you to install/manage your own query stack.",
+    },
+    memoryHook: "SQL on S3 = Athena.",
+    testedConcepts: ["Analytics services", "Serverless data query"],
+    sources: [
+      {
+        title: "What is Amazon Athena?",
+        url: "https://docs.aws.amazon.com/athena/latest/ug/what-is.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-189",
+    domain: "Cloud Concepts",
+    difficulty: "Easy",
+    prompt:
+      "A workload has strict EU data residency requirements. What is the first decision that supports compliance?",
+    choices: [
+      { id: "A", text: "Choose an AWS Region in the EU and keep data/workloads there" },
+      { id: "B", text: "Use only Amazon CloudFront edge locations" },
+      { id: "C", text: "Use any Region because all data is global by default" },
+      { id: "D", text: "Store data in Local Zones outside the EU" },
+    ],
+    answerId: "A",
+    explanation:
+      "Data residency starts with selecting the correct Region and controlling where data is stored and processed.",
+    coaching:
+      "Compliance/data residency questions usually begin with Region selection.",
+    whyCorrect:
+      "AWS customers choose Regions for data storage and processing, which is foundational for meeting jurisdictional residency requirements.",
+    whyWrong: {
+      B: "CloudFront improves content delivery but does not replace primary data residency controls at the Region level.",
+      C: "AWS data is not globally replicated by default across all Regions.",
+      D: "Using locations outside required jurisdictions can violate residency requirements.",
+    },
+    memoryHook: "Data residency starts with Region choice.",
+    testedConcepts: ["Global infrastructure", "Compliance basics"],
+    sources: [
+      {
+        title: "AWS Global Infrastructure",
+        url: "https://aws.amazon.com/about-aws/global-infrastructure/",
+      },
+      {
+        title: "Data residency with AWS",
+        url: "https://aws.amazon.com/compliance/data-residency/",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-190",
+    domain: "Billing & Pricing",
+    difficulty: "Easy",
+    prompt:
+      "Which AWS capability uses machine learning to detect unusual spend patterns and alert you to potential anomalies?",
+    choices: [
+      { id: "A", text: "AWS Cost Anomaly Detection" },
+      { id: "B", text: "AWS Cost Explorer" },
+      { id: "C", text: "AWS Budgets" },
+      { id: "D", text: "AWS Pricing Calculator" },
+    ],
+    answerId: "A",
+    explanation:
+      "AWS Cost Anomaly Detection monitors spend behavior and alerts on unexpected deviations.",
+    coaching:
+      "Unexpected spike detection with ML is Cost Anomaly Detection, not budget thresholds.",
+    whyCorrect:
+      "Cost Anomaly Detection applies ML models to historical spend patterns and notifies when unusual cost behavior is detected.",
+    whyWrong: {
+      B: "Cost Explorer is for analysis and forecasting, not dedicated anomaly detection alerts.",
+      C: "Budgets alert on configured thresholds and forecasts, not ML-based anomaly baselines.",
+      D: "Pricing Calculator estimates pre-deployment costs, not live anomaly monitoring.",
+    },
+    memoryHook: "Unexpected bill spike alert = Cost Anomaly Detection.",
+    testedConcepts: ["Cost monitoring", "Billing alerts"],
+    sources: [
+      {
+        title: "Using AWS Cost Anomaly Detection",
+        url: "https://docs.aws.amazon.com/cost-management/latest/userguide/manage-ad.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-191",
+    domain: "Security",
+    difficulty: "Hard",
+    prompt:
+      "An internet-facing application needs enhanced DDoS protection, 24/7 access to the AWS DDoS Response Team (DRT), and cost protection during attacks. Which AWS offering is required?",
+    choices: [
+      { id: "A", text: "AWS Shield Standard" },
+      { id: "B", text: "AWS Shield Advanced" },
+      { id: "C", text: "AWS WAF only" },
+      { id: "D", text: "Amazon GuardDuty" },
+    ],
+    answerId: "B",
+    explanation:
+      "Shield Advanced includes additional DDoS protections and incident support capabilities beyond Shield Standard.",
+    coaching:
+      "When the stem includes DRT access and cost-protection features, answer Shield Advanced.",
+    whyCorrect:
+      "Shield Advanced provides enhanced detection/mitigation, 24/7 DRT access, and additional protections such as DDoS cost protection benefits.",
+    whyWrong: {
+      A: "Shield Standard is included by default but does not include all advanced support features such as DRT engagement.",
+      C: "WAF filters web requests but is not a full managed DDoS service with advanced response-team features.",
+      D: "GuardDuty detects threats from logs and events; it does not provide inline DDoS mitigation services.",
+    },
+    memoryHook: "DRT + DDoS cost protection = Shield Advanced.",
+    testedConcepts: ["DDoS protection", "AWS edge security services"],
+    sources: [
+      {
+        title: "AWS Shield Advanced features",
+        url: "https://aws.amazon.com/shield/features/",
+      },
+      {
+        title: "AWS Shield and DDoS protection overview",
+        url: "https://docs.aws.amazon.com/waf/latest/developerguide/ddos-overview.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-192",
+    domain: "Technology",
+    difficulty: "Medium",
+    prompt:
+      "Instances in a private subnet need private connectivity to Amazon S3 without using an internet gateway or NAT gateway. Which solution should be implemented?",
+    choices: [
+      { id: "A", text: "S3 gateway VPC endpoint" },
+      { id: "B", text: "NAT gateway" },
+      { id: "C", text: "VPC peering connection" },
+      { id: "D", text: "Transit Gateway attachment only" },
+    ],
+    answerId: "A",
+    explanation:
+      "A gateway VPC endpoint for S3 enables private connectivity from a VPC to S3 without traversing the public internet.",
+    coaching:
+      "Private subnet to S3 with no internet path is the gateway endpoint pattern.",
+    whyCorrect:
+      "S3 gateway endpoints add route-table targets for private S3 access, avoiding internet gateway and NAT dependencies.",
+    whyWrong: {
+      B: "NAT gateway enables outbound internet access, which is specifically not required here.",
+      C: "VPC peering connects VPCs to each other, not directly to Amazon S3 service endpoints.",
+      D: "Transit Gateway is for connecting multiple networks; it does not replace an S3 VPC endpoint for private S3 access.",
+    },
+    memoryHook: "Private S3 from VPC = S3 gateway endpoint.",
+    testedConcepts: ["VPC networking", "Private service access"],
+    sources: [
+      {
+        title: "Gateway endpoints for Amazon S3",
+        url: "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-193",
+    domain: "Cloud Concepts",
+    difficulty: "Medium",
+    prompt:
+      "A migration team wants to move an on-premises application to AWS quickly with minimal code changes. Which migration strategy is this?",
+    choices: [
+      { id: "A", text: "Rehost (lift and shift)" },
+      { id: "B", text: "Refactor/Re-architect" },
+      { id: "C", text: "Repurchase" },
+      { id: "D", text: "Retire" },
+    ],
+    answerId: "A",
+    explanation:
+      "Rehosting moves workloads with minimal changes, focusing on speed of migration.",
+    coaching:
+      "Minimal code changes + fast move is classic rehost/lift-and-shift wording.",
+    whyCorrect:
+      "Rehost strategy prioritizes rapid migration by moving applications largely as-is to cloud infrastructure.",
+    whyWrong: {
+      B: "Refactoring requires significant code or architecture changes.",
+      C: "Repurchase means moving to a different product/SaaS model, not minimally changing the existing app.",
+      D: "Retire means decommissioning the application rather than migrating it.",
+    },
+    memoryHook: "Fast move, few changes = rehost.",
+    testedConcepts: ["Migration strategies", "Cloud adoption"],
+    sources: [
+      {
+        title: "Migration strategies",
+        url: "https://docs.aws.amazon.com/prescriptive-guidance/latest/migration-portfolio-assessment-guide/migration-strategies.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-194",
+    domain: "Billing & Pricing",
+    difficulty: "Hard",
+    prompt:
+      "A critical steady-state EC2 workload needs both discounted pricing and guaranteed capacity in a specific Availability Zone. Which option best meets both requirements?",
+    choices: [
+      { id: "A", text: "Zonal Reserved Instances" },
+      { id: "B", text: "Compute Savings Plans" },
+      { id: "C", text: "Spot Instances" },
+      { id: "D", text: "On-Demand Instances without reservation" },
+    ],
+    answerId: "A",
+    explanation:
+      "Zonal Reserved Instances can provide billing discounts and reserve capacity in a specified AZ.",
+    coaching:
+      "If the question explicitly requires AZ capacity guarantee plus discount, think Zonal RI.",
+    whyCorrect:
+      "A Zonal Reserved Instance applies a pricing discount and includes a capacity reservation in the selected Availability Zone for matching instances.",
+    whyWrong: {
+      B: "Compute Savings Plans provide discounts but do not provide capacity reservation guarantees.",
+      C: "Spot has no capacity guarantee and can be interrupted.",
+      D: "On-Demand without reservation provides no commitment discount and no reserved capacity assurance.",
+    },
+    memoryHook: "Discount + AZ capacity guarantee = Zonal RI.",
+    testedConcepts: ["Reserved capacity", "EC2 pricing options"],
+    sources: [
+      {
+        title: "Amazon EC2 Reserved Instances",
+        url: "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-reserved-instances.html",
+      },
+    ],
+    verified: true,
+  },
+  {
+    id: "clf-195",
+    domain: "Security",
+    difficulty: "Medium",
+    prompt:
+      "Which AWS service provisions, manages, and can automatically renew public TLS certificates for use with Elastic Load Balancing?",
+    choices: [
+      { id: "A", text: "AWS Certificate Manager (ACM)" },
+      { id: "B", text: "AWS Secrets Manager" },
+      { id: "C", text: "AWS Key Management Service (KMS)" },
+      { id: "D", text: "Amazon Route 53" },
+    ],
+    answerId: "A",
+    explanation:
+      "ACM manages public and private certificates and supports managed renewal for eligible public certificates.",
+    coaching:
+      "For TLS certificate lifecycle on AWS services like ALB, ACM is the default answer.",
+    whyCorrect:
+      "ACM is purpose-built for certificate provisioning, deployment integration, and managed renewal workflows with supported AWS services.",
+    whyWrong: {
+      B: "Secrets Manager stores and rotates credentials/secrets, not TLS certificate lifecycle for ELB.",
+      C: "KMS manages cryptographic keys, not end-to-end TLS certificate issuance and renewal.",
+      D: "Route 53 provides DNS services; it does not manage TLS certificate issuance and renewal.",
+    },
+    memoryHook: "TLS cert lifecycle on AWS = ACM.",
+    testedConcepts: ["Encryption in transit", "Certificate management"],
+    sources: [
+      {
+        title: "AWS Certificate Manager",
+        url: "https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html",
+      },
+    ],
+    verified: true,
+  },
 ];
 export const QUESTION_COUNT = QUESTION_BANK.length;
 

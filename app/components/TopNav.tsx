@@ -8,11 +8,13 @@ type NavItem = { href: string; label: string; match?: "exact" | "prefix" };
 
 export default function TopNav() {
   const pathname = usePathname() || "/";
+  const isTipsRoute = pathname === "/tips" || pathname.startsWith("/tips/");
 
   const items: NavItem[] = [
     { href: "/", label: "Home", match: "exact" },
     { href: "/dashboard", label: "Dashboard", match: "prefix" },
     { href: "/quiz", label: "Practice", match: "prefix" },
+    { href: "/tips", label: "Tips", match: "prefix" },
   ];
 
   function isActive(item: NavItem) {
@@ -30,7 +32,12 @@ export default function TopNav() {
           className="no-underline hover:no-underline focus:no-underline"
           aria-current={isActive(item) ? "page" : undefined}
         >
-          <PremiumButton type="button" size="sm" variant={isActive(item) ? "indigo" : "neutral"}>
+          <PremiumButton
+            type="button"
+            size="sm"
+            variant={!isTipsRoute && isActive(item) ? "indigo" : "neutral"}
+            className={isTipsRoute ? (isActive(item) ? "tips-nav-btn tips-nav-btn-active" : "tips-nav-btn") : ""}
+          >
             {item.label}
           </PremiumButton>
         </Link>
