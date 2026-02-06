@@ -2,10 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Image from "next/image";
 import TopNav from "./components/TopNav";
-import { Inter } from "next/font/google";
 import PremiumBackground from "./components/PremiumBackground";
-
-const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "AWS Exam Readiness Coach",
@@ -32,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`surface ${inter.className} min-h-screen text-zinc-100`}>
+      <body className="surface min-h-screen text-zinc-100">
         <PremiumBackground />
         <header className="sticky top-0 z-50">
           <div className="bg-slate-950/40 backdrop-blur-md border-b border-white/10">

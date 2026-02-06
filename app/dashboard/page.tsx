@@ -239,6 +239,31 @@ function clearQuizProgress() {
   resetAllProgress();
 }
 
+function readWrongCount(): number {
+  try {
+    return getWrongIds().length;
+  } catch {
+    return 0;
+  }
+}
+
+function readFlaggedCount(): number {
+  try {
+    return getFlaggedIds().length;
+  } catch {
+    return 0;
+  }
+}
+
+function readAchievementsExpanded(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem("dashboard:achievementsExpanded") === "1";
+  } catch {
+    return false;
+  }
+}
+
 function formatRelative(ts: number): string {
   const diffMs = Date.now() - ts;
   const s = Math.max(0, Math.floor(diffMs / 1000));
@@ -259,90 +284,47 @@ export default function DashboardPage() {
 
   const [wrongCount, setWrongCount] = useState(0);
   const [flaggedCount, setFlaggedCount] = useState(0);
-  const [achievementsExpanded, setAchievementsExpanded] = useState(false);
+  const [lastExamScaledScore, setLastExamScaledScoreState] = useState(0);
+  const [achievementsExpanded, setAchievementsExpanded] = useState(() => readAchievementsExpanded());
   const [recentActivityExpanded, setRecentActivityExpanded] = useState(false);
-  const [progressVersion, setProgressVersion] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = subscribe(() => {
-      setProgressVersion((v) => v + 1);
-    });
-    setProgress(loadQuizProgress());
-    try {
-      setWrongCount(getWrongIds().length);
-    } catch {
-      setWrongCount(0);
-    }
-    try {
-      setFlaggedCount(getFlaggedIds().length);
-    } catch {
-      setFlaggedCount(0);
-    }
-    setHydrated(true);
+    const refresh = () => {
+      setProgress(loadQuizProgress());
+      setWrongCount(readWrongCount());
+      setFlaggedCount(readFlaggedCount());
+      setLastExamScaledScoreState(getLastExamScaledScore());
+    };
+
+    const unsubscribe = subscribe(refresh);
 
     // Note: storage event only fires across tabs/windows, not same-tab updates.
     const onStorage = (e: StorageEvent) => {
-      if (e.key === QUIZ_PROGRESS_KEY) setProgress(loadQuizProgress());
-      if (e.key === WRONG_KEY || e.key === LEGACY_MISSED_KEY) {
-        try {
-          setWrongCount(getWrongIds().length);
-        } catch {
-          setWrongCount(0);
-        }
-      }
-      if (e.key === FLAGGED_KEY) {
-        try {
-          setFlaggedCount(getFlaggedIds().length);
-        } catch {
-          setFlaggedCount(0);
-        }
+      if (
+        e.key === QUIZ_PROGRESS_KEY ||
+        e.key === WRONG_KEY ||
+        e.key === LEGACY_MISSED_KEY ||
+        e.key === FLAGGED_KEY
+      ) {
+        refresh();
       }
     };
     window.addEventListener("storage", onStorage);
 
     // This makes the dashboard update when you come back from /quiz in the same tab.
-    const onFocus = () => {
-      setProgress(loadQuizProgress());
-      try {
-        setWrongCount(getWrongIds().length);
-      } catch {
-        setWrongCount(0);
-      }
-      try {
-        setFlaggedCount(getFlaggedIds().length);
-      } catch {
-        setFlaggedCount(0);
-      }
-    };
+    const onFocus = () => refresh();
     window.addEventListener("focus", onFocus);
+
+    queueMicrotask(() => {
+      refresh();
+      setHydrated(true);
+    });
 
     return () => {
       unsubscribe();
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", onFocus);
     };
-  }, []);
-
-  useEffect(() => {
-    try {
-      setWrongCount(getWrongIds().length);
-    } catch {
-      setWrongCount(0);
-    }
-    try {
-      setFlaggedCount(getFlaggedIds().length);
-    } catch {
-      setFlaggedCount(0);
-    }
-  }, [progressVersion]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("dashboard:achievementsExpanded");
-      setAchievementsExpanded(raw === "1");
-    } catch {
-      setAchievementsExpanded(false);
-    }
   }, []);
 
   useEffect(() => {
@@ -358,9 +340,7 @@ export default function DashboardPage() {
   const accuracyPct =
     attemptsTotal > 0 ? Math.round((correctTotal / attemptsTotal) * 100) : 0;
 
-  const lastExamScaledScore = useMemo(() => getLastExamScaledScore(), [progressVersion]);
   const examProgressPct = Math.max(0, Math.min(100, ((lastExamScaledScore - 100) / 900) * 100));
-  const passGap = Math.max(0, 700 - lastExamScaledScore);
   const examBandLabel =
     lastExamScaledScore >= 850
       ? "Excellent"

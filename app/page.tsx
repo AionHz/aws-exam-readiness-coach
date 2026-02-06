@@ -7,61 +7,77 @@ import { PremiumButton } from "./components/PremiumButton";
 import SurfaceShell from "./components/SurfaceShell";
 import ReadinessGauge from "./components/ReadinessGauge";
 import { getPracticeStats, subscribe } from "./lib/progressStore";
-import { MIN_PRACTICE_SCORED } from "./lib/readiness";
+
+const QUIZ_PROGRESS_KEY = "aws-exam-readiness-progress-v1";
+const WRONG_IDS_KEY = "aws-exam-readiness-quiz-wrong-v1";
+const LEGACY_MISSED_KEY = "aws-exam-readiness-quiz-missed-v1";
+const INITIAL_PRACTICE_STATS = {
+  attempts: 0,
+  correct: 0,
+  byDomain: {
+    "Cloud Concepts": { attempts: 0, correct: 0 },
+    Security: { attempts: 0, correct: 0 },
+    Technology: { attempts: 0, correct: 0 },
+    "Billing & Pricing": { attempts: 0, correct: 0 },
+  },
+  lastUpdated: null as number | null,
+};
+
+function readProgressSnapshot(): object | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const rawProgress = localStorage.getItem(QUIZ_PROGRESS_KEY);
+    return rawProgress ? (JSON.parse(rawProgress) as object) : null;
+  } catch {
+    return null;
+  }
+}
+
+function readWrongCountSnapshot(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const rawWrong = localStorage.getItem(WRONG_IDS_KEY);
+    const parsedWrong = rawWrong ? (JSON.parse(rawWrong) as string[]) : [];
+    if (Array.isArray(parsedWrong)) return parsedWrong.length;
+
+    if (!rawWrong) {
+      const legacyRaw = localStorage.getItem(LEGACY_MISSED_KEY);
+      const legacyParsed = legacyRaw ? (JSON.parse(legacyRaw) as string[]) : [];
+      if (Array.isArray(legacyParsed)) {
+        localStorage.setItem(WRONG_IDS_KEY, JSON.stringify(legacyParsed));
+        return legacyParsed.length;
+      }
+    }
+    return 0;
+  } catch {
+    return 0;
+  }
+}
 
 export default function Home() {
   const [progress, setProgress] = useState<object | null>(null);
   const [wrongCount, setWrongCount] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const copyTimeoutRef = useRef<number | null>(null);
-  const [practiceStats, setPracticeStats] = useState({
-    attempts: 0,
-    correct: 0,
-    byDomain: {
-      "Cloud Concepts": { attempts: 0, correct: 0 },
-      Security: { attempts: 0, correct: 0 },
-      Technology: { attempts: 0, correct: 0 },
-      "Billing & Pricing": { attempts: 0, correct: 0 },
-    },
-    lastUpdated: null as number | null,
-  });
+  const [practiceStats, setPracticeStats] = useState(INITIAL_PRACTICE_STATS);
 
   useEffect(() => {
-    try {
-      const rawProgress = localStorage.getItem("aws-exam-readiness-progress-v1");
-      const parsedProgress = rawProgress ? (JSON.parse(rawProgress) as object) : null;
-      setProgress(parsedProgress);
-
-      const rawWrong = localStorage.getItem("aws-exam-readiness-quiz-wrong-v1");
-      const parsedWrong = rawWrong ? (JSON.parse(rawWrong) as string[]) : [];
-      if (Array.isArray(parsedWrong)) {
-        setWrongCount(parsedWrong.length);
-      } else if (!rawWrong) {
-        const legacyRaw = localStorage.getItem("aws-exam-readiness-quiz-missed-v1");
-        const legacyParsed = legacyRaw ? (JSON.parse(legacyRaw) as string[]) : [];
-        if (Array.isArray(legacyParsed)) {
-          localStorage.setItem("aws-exam-readiness-quiz-wrong-v1", JSON.stringify(legacyParsed));
-          setWrongCount(legacyParsed.length);
-        } else {
-          setWrongCount(0);
-        }
-      } else {
-        setWrongCount(0);
-      }
+    const refresh = () => {
       setPracticeStats(getPracticeStats());
-    } catch {
-      setProgress(null);
-      setWrongCount(0);
-      setPracticeStats(getPracticeStats());
-    }
-  }, []);
+      setWrongCount(readWrongCountSnapshot());
+      setProgress(readProgressSnapshot());
+    };
 
-  useEffect(() => {
-    setPracticeStats(getPracticeStats());
     const unsubscribe = subscribe(() => {
-      setPracticeStats(getPracticeStats());
+      refresh();
     });
-    return unsubscribe;
+
+    const raf = window.requestAnimationFrame(refresh);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {

@@ -42,7 +42,7 @@ import {
   toggleFlaggedId,
 } from "../lib/progressStore";
 import SurfaceShell from "../components/SurfaceShell";
-import { btnBase, btnGhost, btnPrimary, cardBase, cardHover, linkReset, pillBase } from "../lib/ui";
+import { cardBase, cardHover, linkReset, pillBase } from "../lib/ui";
 import { PremiumButton } from "../components/PremiumButton";
 type Difficulty = "Easy" | "Medium" | "Hard";
 
@@ -148,10 +148,6 @@ function isDomain(x: string | null | undefined): x is Domain {
   if (!x) return false;
   return (ALL_DOMAINS as string[]).includes(x);
 }
-function isDifficulty(x: string | null | undefined): x is Difficulty {
-  if (!x) return false;
-  return (ALL_DIFFICULTIES as string[]).includes(x);
-}
 
 function parsePositiveInt(x: string | null, fallback: number) {
   const n = Number(x);
@@ -242,7 +238,7 @@ function QuizPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const [selectedAnswer, setSelectedAnswer] = useState<ChoiceId | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [, setShowExplanation] = useState(false);
   const [score, setScore] = useState(0);
   const [wrongIds, setWrongIds] = useState<string[]>([]);
   const [flaggedIds, setFlaggedIds] = useState<string[]>([]);
@@ -319,6 +315,8 @@ function QuizPageContent() {
   // --- BANK INSPECTION / HEALTH CHECKS ---
   const bankStats = useMemo(() => {
     const total = QUESTION_BANK.length;
+    let verifiedCount = 0;
+    let unverifiedCount = 0;
 
     const byDomain: Record<Domain, number> = {
       "Cloud Concepts": 0,
@@ -342,6 +340,8 @@ function QuizPageContent() {
     for (const q of QUESTION_BANK) {
       byDomain[q.domain] += 1;
       byDifficulty[q.difficulty] += 1;
+      if (q.verified) verifiedCount += 1;
+      else unverifiedCount += 1;
 
       if (seenIds.has(q.id)) dupIds.push(q.id);
       seenIds.add(q.id);
@@ -352,7 +352,7 @@ function QuizPageContent() {
       seenPrompts.add(norm);
     }
 
-    return { total, byDomain, byDifficulty, dupIds, dupPrompts };
+    return { total, byDomain, byDifficulty, verifiedCount, unverifiedCount, dupIds, dupPrompts };
   }, []);
 
   const filteredAll = useMemo(() => {
@@ -389,8 +389,8 @@ function QuizPageContent() {
   }, [reviewMode, reviewQuestionIds, questionMap]);
 
   const verifiedPool = useMemo(
-    () => QUESTION_BANK.filter((q) => isVerifiedQuestion(q)),
-    [isVerifiedQuestion]
+    () => QUESTION_BANK.filter((q) => q.verified === true),
+    []
   );
 
   const poolQuestions = useMemo(() => {
@@ -932,22 +932,6 @@ function QuizPageContent() {
     setSettingsOpen(false);
   }
 
-  function goToWrongReview() {
-    if ((wrongIds?.length ?? 0) === 0) return;
-    if (reviewParam === "wrong") return;
-    const params = new URLSearchParams(searchParamsString);
-    params.set("review", "wrong");
-    router.replace(`/quiz?${params.toString()}`, { scroll: false });
-  }
-
-  function goToFlaggedReview() {
-    if ((flaggedIds?.length ?? 0) === 0) return;
-    if (reviewParam === "flagged") return;
-    const params = new URLSearchParams(searchParamsString);
-    params.set("review", "flagged");
-    router.replace(`/quiz?${params.toString()}`, { scroll: false });
-  }
-
   const beginExam = useCallback(() => {
     if (verifiedPool.length < 65) {
       setExamWarning(
@@ -1088,8 +1072,6 @@ function QuizPageContent() {
   }, [reviewMode, exitReviewToPractice, examStatus]);
 
   const pill = `${pillBase} cursor-default`;
-  const toolbarBtnGhost = `${btnBase} ${btnGhost} h-9 px-3 text-sm`;
-  const toolbarBtnActive = `${btnBase} h-9 px-3 text-sm border border-indigo-400 bg-indigo-500/20 text-white`;
 
   function choiceClass(cId: ChoiceId) {
     const base =
@@ -1128,9 +1110,6 @@ function QuizPageContent() {
       ? examSnapshot.total
       : currentNumber;
   const progressPct = displayTotal > 0 ? (displayNumber / displayTotal) * 100 : 0;
-  const currentMeta = currentQuestion
-    ? `${currentQuestion.domain} • ${currentQuestion.difficulty}`
-    : "No questions available";
   const showExamComplete = examMode && examStatus === "finished";
   const finalSnapshot =
     examSnapshot ??
@@ -1146,10 +1125,7 @@ function QuizPageContent() {
         }
       : null);
 
-  const attemptsTotal = progress?.attemptsTotal ?? 0;
-  const correctTotal = progress?.correctTotal ?? 0;
   const streakCorrect = progress?.streakCorrect ?? 0;
-  const streak = streakCorrect;
   const streakMilestone = streakCorrect === 3 || streakCorrect === 5 || streakCorrect === 10;
 
   useEffect(() => {
@@ -1158,9 +1134,6 @@ function QuizPageContent() {
     const t = window.setTimeout(() => setShowStreakBanner(false), 2000);
     return () => window.clearTimeout(t);
   }, [streakMilestone]);
-  const accuracy =
-    attemptsTotal > 0 ? Math.round((correctTotal / attemptsTotal) * 100) : 0;
-
   const qParamBase =
     `${activeDomain ? `domain=${encodeURIComponent(activeDomain)}&` : ""}` +
     `${shuffleOn ? "shuffle=1&" : ""}`;
@@ -1974,6 +1947,13 @@ const timerRow = (
                       >
                         {settingsDraftResolved.includeUnverified ? "✔" : "✕"} Include unverified questions
                       </PremiumButton>
+                    </div>
+                    <div className="mt-2 text-xs text-white/60">
+                      Verified:{" "}
+                      <span className="font-semibold text-emerald-300">{bankStats.verifiedCount}</span>
+                      {" • "}
+                      Unverified:{" "}
+                      <span className="font-semibold text-amber-300">{bankStats.unverifiedCount}</span>
                     </div>
                   </div>
                 </div>
