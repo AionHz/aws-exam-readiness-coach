@@ -15,6 +15,8 @@ export default function TopNav() {
     { href: "/dashboard", label: "Dashboard", match: "prefix" },
     { href: "/quiz", label: "Practice", match: "prefix" },
     { href: "/tips", label: "Tips", match: "prefix" },
+    { href: "/hands-on", label: "Hands-on", match: "prefix" },
+    { href: "/role-sim", label: "Role Sim", match: "prefix" },
   ];
 
   function isActive(item: NavItem) {
