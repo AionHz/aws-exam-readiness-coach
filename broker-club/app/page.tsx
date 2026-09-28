@@ -501,7 +501,7 @@ export default function Home() {
     const scoreDiscount = clamp((underwriting.score - 70) / 260, -0.05, 0.05);
     const factor = clamp(
       1.18 + amountPressure * 0.09 + termPressure * 0.1 - scoreDiscount,
-      1.15,
+      1.1,
       1.49,
     );
     const payback = amount * factor;
