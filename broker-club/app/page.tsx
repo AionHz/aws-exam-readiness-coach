@@ -410,7 +410,7 @@ export default function Home() {
   const [bankHealth, setBankHealth] = useState<BankHealth>("workable");
   const [industryId, setIndustryId] = useState("restaurant");
   const [offerPercent, setOfferPercent] = useState(1);
-  const [termWeeks, setTermWeeks] = useState(36);
+  const [termMonths, setTermMonths] = useState(12);
   const [paymentFrequency, setPaymentFrequency] =
     useState<PaymentFrequency>("daily");
 
@@ -458,7 +458,7 @@ export default function Home() {
         existingDailyPayments,
     );
     const standardFactor = 1.22 + riskPremium;
-    const standardTermDays = 36 * 5;
+    const standardTermDays = 12 * 21.5;
     const cashFlowCap =
       (dailyPaymentCapacity * standardTermDays) / standardFactor;
     const revenueCap = monthlyRevenue * revenueMultiplier;
@@ -497,7 +497,7 @@ export default function Home() {
   const offer = useMemo(() => {
     const amount = clamp(amountValue, 5000, maxAmount);
     const amountPressure = amount / Math.max(underwriting.maxApproval, 1);
-    const termPressure = (termWeeks - 24) / 52;
+    const termPressure = (termMonths - 12) / 24;
     const scoreDiscount = clamp((underwriting.score - 70) / 260, -0.05, 0.05);
     const factor = clamp(
       1.18 + amountPressure * 0.09 + termPressure * 0.1 - scoreDiscount,
@@ -505,9 +505,10 @@ export default function Home() {
       1.49,
     );
     const payback = amount * factor;
-    const termDays = termWeeks * 5;
+    const termDays = Math.round(termMonths * 21.5);
     const dailyPayment = payback / termDays;
-    const weeklyPayment = payback / termWeeks;
+    const termPaymentWeeks = termMonths * 4.3;
+    const weeklyPayment = payback / termPaymentWeeks;
     const paymentAmount =
       paymentFrequency === "daily" ? dailyPayment : weeklyPayment;
     const paymentCapacity =
@@ -529,7 +530,7 @@ export default function Home() {
       termDays,
       weeklyPayment,
     };
-  }, [amountValue, maxAmount, paymentFrequency, termWeeks, underwriting]);
+  }, [amountValue, maxAmount, paymentFrequency, termMonths, underwriting]);
 
   function updateMaxAwareAmount(value: number) {
     setOfferPercent(clamp(value / Math.max(maxAmount, 1), 5000 / maxAmount, 1));
@@ -558,8 +559,7 @@ export default function Home() {
   const paymentCadence = paymentFrequency === "daily" ? "daily" : "weekly";
   const paymentRoomLabel =
     paymentFrequency === "daily" ? "daily payment room" : "weekly payment room";
-  const estimatedTermMonths = Math.max(1, Math.floor(termWeeks / 4.3));
-  const maxEarlyPayoffMonths = Math.min(5, estimatedTermMonths);
+  const maxEarlyPayoffMonths = Math.min(5, termMonths);
   const earlyPayoffSchedule = Array.from(
     { length: maxEarlyPayoffMonths },
     (_, index) => {
@@ -587,19 +587,19 @@ export default function Home() {
     {
       label: "Conservative",
       amount: underwriting.maxApproval * 0.72,
-      term: 44,
+      term: 18,
       note: "Easiest payment conversation.",
     },
     {
       label: "Balanced",
       amount: underwriting.maxApproval * 0.88,
-      term: 36,
+      term: 12,
       note: "Best starting point for most calls.",
     },
     {
       label: "Stretch",
       amount: underwriting.maxApproval,
-      term: 30,
+      term: 9,
       note: "Use when merchant pushes for max cash.",
     },
   ];
@@ -639,7 +639,7 @@ export default function Home() {
         <div className="snapshot-card approval-card">
           <span>Total payback</span>
           <strong>{formatMoney(offer.payback)}</strong>
-          <small>{termWeeks} weeks · {offer.termDays} ACH days</small>
+          <small>{termMonths} months · {offer.termDays} ACH days</small>
         </div>
         <div className="snapshot-card pricing-card">
           <span>Factor</span>
@@ -788,15 +788,15 @@ export default function Home() {
             </label>
             <label className="slider-row">
               <span>
-                Term <b>{termWeeks} weeks</b>
+                Term <b>{termMonths} months</b>
               </span>
               <input
                 type="range"
-                min="12"
-                max="72"
-                step="2"
-                value={termWeeks}
-                onChange={(event) => setTermWeeks(Number(event.target.value))}
+                min="3"
+                max="36"
+                step="1"
+                value={termMonths}
+                onChange={(event) => setTermMonths(Number(event.target.value))}
               />
             </label>
           </div>
@@ -881,7 +881,7 @@ export default function Home() {
                 key={mode.label}
                 onClick={() => {
                   updateMaxAwareAmount(Math.round(mode.amount / 1000) * 1000);
-                  setTermWeeks(mode.term);
+                  setTermMonths(mode.term);
                 }}
               >
                 <b>{mode.label}</b>
