@@ -905,9 +905,7 @@ export default function Home() {
             ))}
           </div>
         </section>
-      </section>
 
-      <section className="close-zone">
         <div className="panel read-panel section-amber">
           <div className="panel-heading">
             <span>Read</span>
@@ -929,7 +927,9 @@ export default function Home() {
             </p>
           </div>
         </div>
+      </section>
 
+      <section className="strategy-zone">
         <div className="panel industry-panel section-purple">
           <div className="panel-heading horizontal">
             <div>

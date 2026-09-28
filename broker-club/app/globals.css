@@ -231,7 +231,7 @@ label,
 
 .deal-desk {
   display: grid;
-  grid-template-columns: 430px minmax(0, 1fr);
+  grid-template-columns: 430px minmax(0, 1fr) 360px;
   gap: 14px;
   align-items: start;
 }
@@ -748,9 +748,10 @@ input[type="range"] {
   line-height: 1.35;
 }
 
-.close-zone {
+.close-zone,
+.strategy-zone {
   display: grid;
-  grid-template-columns: 0.82fr 1.18fr;
+  grid-template-columns: 1fr;
   gap: 14px;
   margin-top: 14px;
 }
@@ -1353,13 +1354,22 @@ label,
 }
 
 .deal-desk {
-  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(480px, 1fr) 300px;
   gap: 10px;
 }
 
-.close-zone {
+.strategy-zone {
   gap: 10px;
   margin-top: 10px;
+}
+
+.read-panel {
+  position: sticky;
+  top: 12px;
+}
+
+.strategy-zone .industry-panel {
+  display: grid;
 }
 
 .panel {
@@ -1615,6 +1625,116 @@ input[type="range"] {
   background: rgba(4, 8, 5, 0.52);
 }
 
+.input-panel .field-grid {
+  grid-template-columns: 1fr;
+}
+
+.input-panel,
+.offer-panel,
+.read-panel,
+.industry-panel {
+  border-radius: 12px;
+}
+
+.offer-panel {
+  border-color: rgba(57, 255, 136, 0.22);
+  background:
+    linear-gradient(180deg, rgba(57, 255, 136, 0.055), transparent 28%),
+    rgba(9, 14, 10, 0.84);
+}
+
+.read-panel {
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+}
+
+.offer-card,
+.payment-card,
+.approval-card,
+.pricing-card {
+  border-radius: 12px;
+}
+
+.offer-focus-grid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(210px, 0.85fr);
+}
+
+.offer-focus {
+  position: relative;
+  overflow: hidden;
+}
+
+.offer-focus::after {
+  content: "";
+  position: absolute;
+  inset: auto 14px 12px 14px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(57, 255, 136, 0.72), transparent);
+}
+
+.slider-card {
+  display: grid;
+  gap: 12px;
+}
+
+.slider-row + .slider-row {
+  margin-top: 0;
+}
+
+.scenario-grid button {
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.scenario-grid button:hover {
+  transform: translateY(-1px);
+}
+
+.strategy-zone {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.strategy-zone .industry-panel {
+  border-radius: 12px;
+}
+
+@media (max-width: 1280px) {
+  .deal-desk {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+
+  .read-panel {
+    position: static;
+    grid-column: 1 / -1;
+    max-height: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .deal-desk {
+    grid-template-columns: 1fr;
+  }
+
+  .input-panel {
+    order: 1;
+  }
+
+  .offer-panel {
+    order: 2;
+  }
+
+  .read-panel {
+    order: 3;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .offer-focus-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1180px) {
   .deal-desk,
   .close-zone {
@@ -1657,5 +1777,34 @@ input[type="range"] {
 
   h1 {
     font-size: 2.45rem;
+  }
+}
+
+@media (max-width: 1180px) {
+  .deal-desk {
+    grid-template-columns: 1fr;
+  }
+
+  .input-panel {
+    order: 1;
+  }
+
+  .offer-panel {
+    order: 2;
+  }
+
+  .read-panel {
+    order: 3;
+  }
+}
+
+@media (max-width: 560px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .market-stamp {
+    width: 100%;
+    text-align: left;
   }
 }
