@@ -627,8 +627,8 @@ export default function Home() {
           <h1>Broker Club</h1>
         </div>
         <div className="market-stamp">
-          <span>Signal</span>
-          <strong>{underwriting.tier}</strong>
+          <span>{underwriting.tier}</span>
+          <strong>Live Offer</strong>
         </div>
       </header>
 
