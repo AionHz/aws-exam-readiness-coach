@@ -1,22 +1,22 @@
 :root {
-  --page: #080a12;
-  --surface: rgba(13, 17, 29, 0.94);
-  --surface-2: rgba(18, 25, 42, 0.94);
-  --ink: #eefcff;
-  --muted: #8aa7b7;
-  --line: rgba(107, 248, 255, 0.22);
-  --navy: #f5fbff;
-  --blue: #17e6ff;
-  --blue-soft: rgba(23, 230, 255, 0.11);
-  --green: #43ff9d;
-  --green-soft: rgba(67, 255, 157, 0.11);
-  --amber: #ffd166;
-  --amber-soft: rgba(255, 209, 102, 0.13);
-  --purple: #ff4fd8;
-  --purple-soft: rgba(255, 79, 216, 0.12);
-  --red: #ff4b6a;
-  --red-soft: rgba(255, 75, 106, 0.14);
-  --shadow: 0 22px 70px rgba(0, 0, 0, 0.42), 0 0 34px rgba(23, 230, 255, 0.08);
+  --page: #070806;
+  --surface: rgba(15, 17, 13, 0.96);
+  --surface-2: rgba(20, 23, 18, 0.96);
+  --ink: #f6f0df;
+  --muted: #a9a18f;
+  --line: rgba(214, 180, 95, 0.26);
+  --navy: #fff8e7;
+  --blue: #d6b45f;
+  --blue-soft: rgba(214, 180, 95, 0.11);
+  --green: #37c978;
+  --green-soft: rgba(55, 201, 120, 0.11);
+  --amber: #e3bd66;
+  --amber-soft: rgba(227, 189, 102, 0.13);
+  --purple: #a9864d;
+  --purple-soft: rgba(169, 134, 77, 0.13);
+  --red: #d45b52;
+  --red-soft: rgba(212, 91, 82, 0.13);
+  --shadow: 0 26px 70px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.025);
 }
 
 * {
@@ -32,13 +32,13 @@ body {
   margin: 0;
   color: var(--ink);
   background:
-    radial-gradient(circle at 16% 0%, rgba(255, 79, 216, 0.18), transparent 30%),
-    radial-gradient(circle at 82% 8%, rgba(67, 255, 157, 0.12), transparent 27%),
-    linear-gradient(135deg, rgba(23, 230, 255, 0.08) 0 1px, transparent 1px 42px),
-    linear-gradient(90deg, rgba(255, 209, 102, 0.04) 0 1px, transparent 1px 42px),
+    radial-gradient(circle at 18% 0%, rgba(214, 180, 95, 0.18), transparent 30%),
+    radial-gradient(circle at 86% 4%, rgba(55, 201, 120, 0.12), transparent 28%),
+    linear-gradient(135deg, rgba(214, 180, 95, 0.055) 0 1px, transparent 1px 44px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 44px),
     var(--page);
   font-family:
-    Inter, ui-monospace, "SF Mono", Monaco, Consolas, "Liberation Mono", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   letter-spacing: 0;
 }
@@ -50,8 +50,8 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 5px),
-    linear-gradient(180deg, rgba(8, 10, 18, 0), rgba(8, 10, 18, 0.82));
+    linear-gradient(180deg, rgba(7, 8, 6, 0), rgba(7, 8, 6, 0.86)),
+    repeating-linear-gradient(90deg, transparent 0 118px, rgba(214, 180, 95, 0.035) 118px 119px);
 }
 
 button,
@@ -71,27 +71,87 @@ button {
 }
 
 .topbar {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
   margin-bottom: 14px;
-  min-height: 84px;
-  padding: 14px;
-  border: 1px solid rgba(23, 230, 255, 0.44);
+  min-height: 112px;
+  padding: 22px 24px;
+  border: 1px solid rgba(214, 180, 95, 0.42);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(8, 10, 18, 0.98), rgba(38, 11, 51, 0.9)),
-    repeating-linear-gradient(90deg, transparent 0 42px, rgba(23, 230, 255, 0.16) 42px 43px);
+    linear-gradient(135deg, rgba(7, 8, 6, 0.98), rgba(30, 24, 13, 0.92)),
+    repeating-linear-gradient(90deg, transparent 0 54px, rgba(214, 180, 95, 0.1) 54px 55px);
   backdrop-filter: blur(14px);
-  box-shadow: 0 0 0 1px rgba(255, 79, 216, 0.16), 0 24px 60px rgba(0, 0, 0, 0.46), 0 0 38px rgba(23, 230, 255, 0.16);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.brand-lockup {
+  display: grid;
+  gap: 7px;
+}
+
+.brand-lockup span,
+.market-stamp span {
+  color: var(--amber);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .topbar h1 {
   margin: 0;
   color: var(--ink);
-  font-size: clamp(2.4rem, 6vw, 4.9rem);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.8rem, 6.2vw, 5.5rem);
   line-height: 1;
   letter-spacing: 0;
-  text-shadow: 0 0 14px rgba(23, 230, 255, 0.8), 3px 0 0 rgba(255, 79, 216, 0.52);
+  text-shadow: 0 10px 34px rgba(0, 0, 0, 0.62);
+}
+
+.market-stamp {
+  display: grid;
+  min-width: 150px;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(214, 180, 95, 0.34);
+  border-radius: 8px;
+  background: rgba(5, 7, 5, 0.62);
+  text-align: right;
+}
+
+.market-stamp strong {
+  color: var(--green);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+}
+
+.market-tape {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(214, 180, 95, 0.24);
+  border-radius: 8px;
+  background: rgba(214, 180, 95, 0.24);
+  box-shadow: var(--shadow);
+}
+
+.market-tape span {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 8px 12px;
+  color: #d8c69a;
+  background: rgba(10, 12, 9, 0.92);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .panel,
@@ -166,6 +226,7 @@ label,
   color: var(--navy);
   font-size: 1.72rem;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .deal-desk {
@@ -992,33 +1053,33 @@ input[type="range"] {
 .reference-strip {
   border-color: var(--line);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent),
     var(--surface-2);
 }
 
 .snapshot-card {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--shadow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.065), var(--shadow);
 }
 
 .approval-card {
-  background: linear-gradient(180deg, rgba(67, 255, 157, 0.16), rgba(13, 17, 29, 0.92) 76%);
+  background: linear-gradient(180deg, rgba(55, 201, 120, 0.16), rgba(15, 17, 13, 0.94) 76%);
 }
 
 .offer-card,
 .underwriting-strip div:nth-child(1),
 .slider-card {
-  background: linear-gradient(180deg, rgba(23, 230, 255, 0.15), rgba(13, 17, 29, 0.92) 76%);
+  background: linear-gradient(180deg, rgba(214, 180, 95, 0.15), rgba(15, 17, 13, 0.94) 76%);
 }
 
 .payment-card,
 .underwriting-strip div:nth-child(3) {
-  background: linear-gradient(180deg, rgba(255, 209, 102, 0.16), rgba(13, 17, 29, 0.92) 76%);
+  background: linear-gradient(180deg, rgba(227, 189, 102, 0.16), rgba(15, 17, 13, 0.94) 76%);
 }
 
 .pricing-card,
 .payoff-card,
 .use-grid > div:first-child {
-  background: linear-gradient(180deg, rgba(255, 79, 216, 0.15), rgba(13, 17, 29, 0.92) 76%);
+  background: linear-gradient(180deg, rgba(169, 134, 77, 0.15), rgba(15, 17, 13, 0.94) 76%);
 }
 
 h2,
@@ -1046,59 +1107,59 @@ h2,
 .payoff-grid small,
 .talk-track p,
 .mirror-line {
-  color: #b7c9d6;
+  color: #c8c0ac;
 }
 
 input,
 select {
-  border-color: rgba(23, 230, 255, 0.28);
+  border-color: rgba(214, 180, 95, 0.26);
   color: var(--ink);
-  background: rgba(3, 7, 18, 0.72);
-  box-shadow: inset 0 0 18px rgba(23, 230, 255, 0.05);
+  background: rgba(5, 7, 5, 0.74);
+  box-shadow: inset 0 0 18px rgba(214, 180, 95, 0.045);
 }
 
 input:focus,
 select:focus {
   border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(23, 230, 255, 0.13), 0 0 24px rgba(23, 230, 255, 0.18);
+  box-shadow: 0 0 0 3px rgba(214, 180, 95, 0.13), 0 0 24px rgba(214, 180, 95, 0.14);
 }
 
 .score-badge,
 .frequency-control div {
-  border-color: rgba(23, 230, 255, 0.28);
-  background: rgba(3, 7, 18, 0.78);
+  border-color: rgba(214, 180, 95, 0.28);
+  background: rgba(5, 7, 5, 0.78);
 }
 
 .score-badge b,
 .score-badge small {
   color: var(--blue);
-  text-shadow: 0 0 12px rgba(23, 230, 255, 0.6);
+  text-shadow: 0 0 18px rgba(214, 180, 95, 0.26);
 }
 
 .offer-focus {
   background:
-    linear-gradient(135deg, rgba(23, 230, 255, 0.22), rgba(255, 79, 216, 0.18)),
-    #070a12;
-  box-shadow: inset 0 0 0 1px rgba(23, 230, 255, 0.32), 0 0 32px rgba(255, 79, 216, 0.13);
+    linear-gradient(135deg, rgba(214, 180, 95, 0.2), rgba(55, 201, 120, 0.12)),
+    #080a07;
+  box-shadow: inset 0 0 0 1px rgba(214, 180, 95, 0.36), 0 22px 48px rgba(0, 0, 0, 0.38);
 }
 
 .payment-focus,
 .capacity.good,
 .growth-math div.good,
 .use-grid > div:last-child {
-  color: #baffd8;
-  background: linear-gradient(180deg, rgba(67, 255, 157, 0.16), rgba(13, 17, 29, 0.92) 76%);
+  color: #c8f7da;
+  background: linear-gradient(180deg, rgba(55, 201, 120, 0.16), rgba(15, 17, 13, 0.94) 76%);
 }
 
 .capacity.bad,
 .growth-math div.bad {
-  color: #ffd0d8;
-  background: linear-gradient(180deg, rgba(255, 75, 106, 0.16), rgba(13, 17, 29, 0.92) 76%);
+  color: #f6c7c3;
+  background: linear-gradient(180deg, rgba(212, 91, 82, 0.16), rgba(15, 17, 13, 0.94) 76%);
 }
 
 .payment-focus strong {
   color: var(--green);
-  text-shadow: 0 0 16px rgba(67, 255, 157, 0.52);
+  text-shadow: 0 0 18px rgba(55, 201, 120, 0.25);
 }
 
 .frequency-control button {
@@ -1106,9 +1167,9 @@ select:focus {
 }
 
 .frequency-control button.is-active {
-  color: #03111a;
-  background: linear-gradient(135deg, var(--blue), var(--green));
-  box-shadow: 0 0 22px rgba(23, 230, 255, 0.3);
+  color: #070806;
+  background: linear-gradient(135deg, var(--amber), #f6df9d);
+  box-shadow: 0 12px 26px rgba(214, 180, 95, 0.18);
 }
 
 input[type="range"] {
@@ -1117,24 +1178,24 @@ input[type="range"] {
 
 .payoff-header strong,
 .playbook-grid article > span {
-  color: #06101a;
-  background: linear-gradient(135deg, var(--purple), var(--amber));
+  color: #070806;
+  background: linear-gradient(135deg, var(--amber), #f2d891);
 }
 
 .scenario-grid button:hover {
-  border-color: rgba(23, 230, 255, 0.5);
-  background: rgba(23, 230, 255, 0.1);
+  border-color: rgba(214, 180, 95, 0.52);
+  background: rgba(214, 180, 95, 0.1);
 }
 
 .signal-list li,
 .use-grid li {
-  border-bottom-color: rgba(107, 248, 255, 0.16);
+  border-bottom-color: rgba(214, 180, 95, 0.14);
 }
 
 .signal-list li::before,
 .use-grid li::before {
   background: var(--amber);
-  box-shadow: 0 0 12px rgba(255, 209, 102, 0.8);
+  box-shadow: 0 0 14px rgba(214, 180, 95, 0.44);
 }
 
 .industry-panel h3,
@@ -1146,8 +1207,8 @@ input[type="range"] {
 .bar-chart {
   border-color: var(--line);
   background:
-    repeating-linear-gradient(0deg, rgba(107, 248, 255, 0.1) 0 1px, transparent 1px 42px),
-    rgba(3, 7, 18, 0.72);
+    repeating-linear-gradient(0deg, rgba(214, 180, 95, 0.1) 0 1px, transparent 1px 42px),
+    rgba(5, 7, 5, 0.72);
 }
 
 .bar-column span {
@@ -1155,8 +1216,8 @@ input[type="range"] {
 }
 
 .bar-column i {
-  background: linear-gradient(180deg, var(--green), var(--blue), var(--purple));
-  box-shadow: 0 0 24px rgba(23, 230, 255, 0.26);
+  background: linear-gradient(180deg, var(--green), var(--amber));
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.34);
 }
 
 @media (max-width: 1180px) {
@@ -1183,6 +1244,7 @@ input[type="range"] {
   }
 
   .summary-grid,
+  .market-tape,
   .offer-focus-grid,
   .underwriting-strip,
   .numbers-grid,

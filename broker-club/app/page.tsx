@@ -622,8 +622,22 @@ export default function Home() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <h1>Broker Club</h1>
+        <div className="brand-lockup">
+          <span>Private capital desk</span>
+          <h1>Broker Club</h1>
+        </div>
+        <div className="market-stamp">
+          <span>MCA</span>
+          <strong>Live Offer</strong>
+        </div>
       </header>
+
+      <section className="market-tape" aria-label="Deal desk rules">
+        <span>Factor 1.10-1.49</span>
+        <span>Max term 36 months</span>
+        <span>Daily / Weekly ACH</span>
+        <span>Early payoff 1-5 months</span>
+      </section>
 
       <section className="summary-grid" aria-label="Deal snapshot">
         <div className="snapshot-card offer-card">
