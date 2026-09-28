@@ -9,8 +9,14 @@ type Industry = {
   name: string;
   favor: number;
   headline: string;
+  mirror: string;
   uses: string[];
   revenueMoves: string[];
+  playbook: {
+    title: string;
+    detail: string;
+  }[];
+  lift: number;
 };
 
 const industries: Industry[] = [
@@ -19,150 +25,320 @@ const industries: Industry[] = [
     name: "Restaurant / QSR",
     favor: 8,
     headline: "Fast inventory turns make a short-term advance easier to defend.",
+    mirror:
+      "They are not short on effort; they are usually short on timing: inventory, staff, repairs, and weekend demand all hit before the cash from the rush settles.",
     uses: [
-      "Bulk-buy proteins, liquor, disposables, or seasonal ingredients before price spikes.",
-      "Launch a catering push with paid local ads, menu inserts, and delivery-platform promos.",
-      "Repair refrigeration, hood systems, POS, or patio seating before peak weekends.",
+      "Pre-buy the 15-20 highest-turn food, liquor, and disposable items before supplier prices or weekend volume spike.",
+      "Fix the bottleneck that blocks covers: cooler, hood, POS, patio seating, signage, or delivery packaging.",
+      "Fund a catering push with deposits due upfront, not a broad discount campaign.",
     ],
     revenueMoves: [
-      "Push prepaid catering deposits to bring cash in before the event labor hits.",
-      "Pair the advance with a weekly special that uses high-margin items, not just discounts.",
+      "Turn slow weekdays into prepaid catering and office lunch orders.",
+      "Use limited specials around high-margin items instead of discounting the full menu.",
     ],
+    playbook: [
+      {
+        title: "Weekend capacity",
+        detail: "Add staff or repair equipment so peak nights stop leaving money on the table.",
+      },
+      {
+        title: "Catering deposits",
+        detail: "Sell larger orders with deposits before food and labor costs hit.",
+      },
+      {
+        title: "Margin menu",
+        detail: "Push three profitable items hard for 30 days and track ticket lift.",
+      },
+    ],
+    lift: 0.14,
   },
   {
     id: "contractor",
     name: "Contractor / Construction",
     favor: 7,
     headline: "Good for mobilizing jobs when signed work is waiting on materials or labor.",
+    mirror:
+      "A contractor can have money on the calendar and still miss revenue because materials, payroll, or equipment deposits have to be paid before draws clear.",
     uses: [
-      "Put deposits on materials so crews are not sitting idle waiting on supplier credit.",
-      "Cover payroll for a crew expansion tied to a signed job or subcontract.",
-      "Rent equipment for a short window instead of delaying a profitable project.",
+      "Put deposits on materials for jobs that are already signed, scoped, and scheduled.",
+      "Cover crew payroll for a second team when the calendar has enough booked work.",
+      "Rent equipment for a specific job window instead of delaying completion.",
     ],
     revenueMoves: [
-      "Use funds only against scheduled work, then collect progress payments faster.",
-      "Turn one large job into two crews running at once if the calendar supports it.",
+      "Convert backlog into completed invoices faster.",
+      "Negotiate progress payments earlier because mobilization is no longer the excuse.",
     ],
+    playbook: [
+      {
+        title: "Mobilize faster",
+        detail: "Start the next job while waiting on the last draw.",
+      },
+      {
+        title: "Add a crew",
+        detail: "Only add labor tied to signed work, not hope.",
+      },
+      {
+        title: "Finish sooner",
+        detail: "Rent the equipment that gets the invoice out this week.",
+      },
+    ],
+    lift: 0.16,
   },
   {
     id: "trucking",
     name: "Trucking / Logistics",
     favor: 6,
     headline: "Works when receivables are real and repairs unlock trucks that already have lanes.",
+    mirror:
+      "Most trucking files are not missing demand; the issue is cash timing between repairs, fuel, insurance, payroll, and broker payments.",
     uses: [
-      "Repair a down truck or trailer when the load board opportunity is immediate.",
-      "Bridge fuel, insurance, permits, or driver payroll before broker invoices settle.",
-      "Add a leased truck for a dedicated route instead of random spot-market risk.",
+      "Get one truck back on the road when a repair is stopping weekly gross.",
+      "Bridge fuel, tolls, insurance, and driver payroll until broker invoices settle.",
+      "Add a lease or trailer only when a dedicated lane or repeat shipper is lined up.",
     ],
     revenueMoves: [
-      "Prioritize lanes with fast-paying brokers or factoring already in place.",
-      "Use the advance to keep assets moving, not to cover chronically weak margins.",
+      "Prioritize faster-paying lanes and reduce deadhead miles.",
+      "Keep working assets moving instead of using capital to cover weak-margin loads.",
     ],
+    playbook: [
+      {
+        title: "Repair to revenue",
+        detail: "Tie the money to a truck that can produce immediately after repair.",
+      },
+      {
+        title: "Fuel bridge",
+        detail: "Bridge the gap between load completion and payment.",
+      },
+      {
+        title: "Lane discipline",
+        detail: "Chase repeat lanes, not random high-gross low-margin work.",
+      },
+    ],
+    lift: 0.11,
   },
   {
     id: "auto",
     name: "Auto Repair / Tire",
     favor: 8,
     headline: "Strong MCA fit when bays are busy and parts availability is the bottleneck.",
+    mirror:
+      "Auto shops lose money when a car is in the bay but parts, tires, or equipment slow down same-day completion.",
     uses: [
-      "Stock high-turn tires, brake kits, batteries, and fluids before demand hits.",
-      "Repair lifts, compressors, alignment machines, or diagnostic equipment.",
-      "Market fleet maintenance packages to local delivery, taxi, or trade businesses.",
+      "Stock the tires, brake kits, batteries, and fluids that sell every week.",
+      "Repair the lift, compressor, alignment rack, or scanner that slows tickets.",
+      "Build a local fleet offer for vans, rideshare, delivery, and trades.",
     ],
     revenueMoves: [
-      "Bundle diagnostics with same-day repair approvals to raise ticket size.",
-      "Use financing to reduce parts delays that cause customers to shop elsewhere.",
+      "Convert diagnostics into same-day approvals while the car is already there.",
+      "Reduce parts delays so customers do not price-shop the job elsewhere.",
     ],
+    playbook: [
+      {
+        title: "Same-day close",
+        detail: "Have common parts ready so diagnosis turns into repair today.",
+      },
+      {
+        title: "Fleet accounts",
+        detail: "Sell recurring maintenance to businesses with vehicles.",
+      },
+      {
+        title: "Bay speed",
+        detail: "Fix the equipment bottleneck that limits cars per day.",
+      },
+    ],
+    lift: 0.13,
   },
   {
     id: "medical",
     name: "Medical / Dental",
     favor: 8,
     headline: "Recurring patient flow and high ticket size can support clean offers.",
+    mirror:
+      "Practices often have demand, but cash is tied up in reimbursements, equipment, or patient acquisition before the case is completed.",
     uses: [
-      "Upgrade treatment rooms, imaging, sterilization, or patient financing promotions.",
-      "Add paid search for high-intent procedures instead of broad brand campaigns.",
-      "Bridge insurance reimbursement timing while keeping schedule capacity full.",
+      "Promote one profitable procedure: implants, whitening, ortho, med-spa packages, or imaging.",
+      "Upgrade the room or equipment that increases completed cases per day.",
+      "Bridge reimbursement timing without slowing patient scheduling.",
     ],
     revenueMoves: [
-      "Fund a specific procedure campaign with tracked consults and booked cases.",
-      "Use capital to remove operational constraints, not just decorate the office.",
+      "Track consults, booked cases, and collected revenue from one procedure campaign.",
+      "Use capital to increase case acceptance, not just office appearance.",
     ],
+    playbook: [
+      {
+        title: "Procedure campaign",
+        detail: "Promote one high-value service and measure booked consults.",
+      },
+      {
+        title: "Case acceptance",
+        detail: "Pair marketing with patient financing and follow-up calls.",
+      },
+      {
+        title: "Schedule capacity",
+        detail: "Remove the equipment or staffing limit that blocks completed visits.",
+      },
+    ],
+    lift: 0.12,
   },
   {
     id: "retail",
     name: "Retail / E-commerce",
     favor: 7,
     headline: "Inventory discipline matters: capital should chase proven SKUs.",
+    mirror:
+      "Retail owners usually do not need random inventory; they need enough of the winners before the season, event, or ad campaign hits.",
     uses: [
-      "Buy proven products deeper before a season, holiday, or supplier discount window.",
-      "Fund packaging, fulfillment labor, or ad spend for products with known conversion.",
-      "Open a pop-up or local event table when prior sell-through is proven.",
+      "Buy deeper on the top-selling SKUs that already turn, not experimental items.",
+      "Fund packaging, fulfillment labor, or ad spend only for products with conversion history.",
+      "Pre-load inventory for a holiday, event, or supplier discount window.",
     ],
     revenueMoves: [
-      "Reorder winners first; do not use expensive money to test unproven inventory.",
-      "Tie the term to inventory turnover so the payback matches the cash cycle.",
+      "Reorder winners first and use slower items for bundles.",
+      "Match the advance term to how quickly the inventory turns into cash.",
     ],
+    playbook: [
+      {
+        title: "Double down",
+        detail: "Put capital behind the 20% of products already driving most sales.",
+      },
+      {
+        title: "Bundle slow stock",
+        detail: "Use winners to move stale inventory without killing margin.",
+      },
+      {
+        title: "Fulfillment speed",
+        detail: "Ship faster so ad spend turns into repeat orders.",
+      },
+    ],
+    lift: 0.15,
   },
   {
     id: "salon",
     name: "Salon / Med Spa",
     favor: 7,
     headline: "Upsellable services and memberships can make smaller advances productive.",
+    mirror:
+      "Salons and med spas usually have underused rooms, chairs, or client lists. The money should turn those into appointments.",
     uses: [
-      "Buy product inventory with strong retail margin and repeat demand.",
-      "Add equipment for booked services such as laser, facial, massage, or injectables.",
-      "Run a reactivation campaign to prior clients with limited appointment blocks.",
+      "Run a reactivation campaign to past clients with limited booking windows.",
+      "Buy product inventory that stylists or techs can sell at checkout.",
+      "Add equipment only for services that can be pre-sold or quickly booked.",
     ],
     revenueMoves: [
-      "Sell packages or memberships before spending heavily on new-client ads.",
-      "Use capital to fill unused chair or room capacity, not just expand fixed overhead.",
+      "Sell packages, memberships, or prepaid sessions before broad ad spend.",
+      "Fill idle chair or room capacity first; expansion comes after utilization.",
     ],
+    playbook: [
+      {
+        title: "Reactivate",
+        detail: "Text prior clients with a limited booking offer.",
+      },
+      {
+        title: "Pre-sell packages",
+        detail: "Collect cash upfront on bundles or memberships.",
+      },
+      {
+        title: "Retail attach",
+        detail: "Train staff to add product sales to every appointment.",
+      },
+    ],
+    lift: 0.12,
   },
   {
     id: "home-services",
     name: "HVAC / Plumbing / Home Services",
     favor: 8,
     headline: "Emergency-demand businesses can turn speed into booked revenue.",
+    mirror:
+      "Home service companies win when they answer faster, arrive faster, and have the parts to finish the job on the first visit.",
     uses: [
-      "Stock parts for the most common repairs during weather-driven demand spikes.",
-      "Add a service vehicle wrap, lead-response system, or dispatcher coverage.",
-      "Fund technician payroll while a backlog of booked calls is being completed.",
+      "Stock the parts that close the most common emergency calls same day.",
+      "Fund dispatch coverage, lead response, or technician payroll during demand spikes.",
+      "Wrap or equip a vehicle only if it helps book or complete more calls.",
     ],
     revenueMoves: [
-      "Aim funds at faster response time, because speed often wins the call.",
-      "Push maintenance plans to convert one-time jobs into repeat revenue.",
+      "Speed wins the call; first-visit completion wins the margin.",
+      "Turn emergency jobs into maintenance plans for repeat revenue.",
     ],
+    playbook: [
+      {
+        title: "Answer faster",
+        detail: "Pay for dispatch or lead response so calls are not missed.",
+      },
+      {
+        title: "Finish first visit",
+        detail: "Stock common parts so jobs do not require a second trip.",
+      },
+      {
+        title: "Convert to plans",
+        detail: "Offer maintenance plans after every repair.",
+      },
+    ],
+    lift: 0.16,
   },
   {
     id: "manufacturing",
     name: "Manufacturing / Wholesale",
     favor: 6,
     headline: "Good when purchase orders or repeat buyers support the cash cycle.",
+    mirror:
+      "Manufacturers and wholesalers get squeezed when a confirmed order needs materials, labor, or machine time before the buyer pays.",
     uses: [
-      "Buy raw materials for a confirmed order without exhausting operating cash.",
+      "Buy raw materials tied to confirmed orders or repeat buyers.",
       "Cover overtime or temp labor to ship a profitable batch on time.",
-      "Repair production equipment that is blocking completed sales.",
+      "Repair the machine or tool that is blocking completed shipments.",
     ],
     revenueMoves: [
-      "Tie funding to purchase orders, not speculative production.",
-      "Ask suppliers for early-pay discounts while using the advance for timing.",
+      "Tie the advance to purchase orders, not speculative production.",
+      "Ask suppliers for early-pay discounts and faster material release.",
     ],
+    playbook: [
+      {
+        title: "Fund the PO",
+        detail: "Use the money on confirmed demand, not inventory guesses.",
+      },
+      {
+        title: "Ship sooner",
+        detail: "Pay overtime if it moves invoices out faster.",
+      },
+      {
+        title: "Supplier leverage",
+        detail: "Use cash timing to negotiate discounts or priority supply.",
+      },
+    ],
+    lift: 0.1,
   },
   {
     id: "liquor",
     name: "Liquor / Convenience",
     favor: 8,
     headline: "Frequent deposits and fast inventory cycles are attractive when balances stay clean.",
+    mirror:
+      "Convenience and liquor stores are about shelf velocity. The capital should keep the fastest-moving shelves full when demand is predictable.",
     uses: [
-      "Stock high-velocity alcohol, tobacco, lottery-adjacent goods, or convenience items.",
-      "Upgrade coolers, signage, security, or POS to improve throughput.",
-      "Buy ahead for holidays, events, or local seasonal demand.",
+      "Stock the high-velocity alcohol, tobacco, drinks, and convenience items that sell weekly.",
+      "Upgrade coolers, signage, POS, or security when it improves ticket size or checkout speed.",
+      "Buy ahead for holidays, local events, and seasonal demand before suppliers tighten terms.",
     ],
     revenueMoves: [
-      "Use capital for inventory that turns weekly, not slow novelty items.",
-      "Create bundle pricing that raises average ticket without discounting the whole basket.",
+      "Use capital for weekly-turn inventory, not slow novelty items.",
+      "Bundle items to raise average ticket without discounting the entire basket.",
     ],
+    playbook: [
+      {
+        title: "Keep winners stocked",
+        detail: "Avoid empty shelves on the products customers already come in for.",
+      },
+      {
+        title: "Raise ticket size",
+        detail: "Bundle common add-ons near checkout.",
+      },
+      {
+        title: "Seasonal buy",
+        detail: "Buy ahead before holidays or local events drive demand.",
+      },
+    ],
+    lift: 0.13,
   },
 ];
 
@@ -345,6 +521,20 @@ export default function Home() {
       note: "Use when merchant pushes for max cash.",
     },
   ];
+  const growthLift = selectedIndustry.lift;
+  const growthProjection = [
+    { label: "Now", value: monthlyRevenue },
+    { label: "30d", value: monthlyRevenue * (1 + growthLift * 0.32) },
+    { label: "60d", value: monthlyRevenue * (1 + growthLift * 0.68) },
+    { label: "90d", value: monthlyRevenue * (1 + growthLift) },
+  ];
+  const maxProjectedRevenue = Math.max(
+    ...growthProjection.map((item) => item.value),
+  );
+  const monthlyAchEstimate = offer.dailyPayment * 21.5;
+  const projectedLiftDollars =
+    growthProjection[growthProjection.length - 1].value - monthlyRevenue;
+  const netAfterDailyPayment = projectedLiftDollars - monthlyAchEstimate;
 
   return (
     <main className="app-shell">
@@ -648,7 +838,7 @@ export default function Home() {
           <h3>{selectedIndustry.headline}</h3>
           <div className="use-grid">
             <div>
-              <span>Use the funds for</span>
+              <span>Use of funds</span>
               <ul>
                 {selectedIndustry.uses.map((use) => (
                   <li key={use}>{use}</li>
@@ -662,6 +852,63 @@ export default function Home() {
                   <li key={move}>{move}</li>
                 ))}
               </ul>
+            </div>
+          </div>
+
+          <div className="growth-card" aria-label="Merchant growth snapshot">
+            <div className="growth-header">
+              <div>
+                <span>Show merchant</span>
+                <h3>90-day revenue path</h3>
+              </div>
+              <strong>+{formatPercent(growthLift)}</strong>
+            </div>
+
+            <p className="mirror-line">{selectedIndustry.mirror}</p>
+
+            <div className="bar-chart" aria-label="Projected revenue chart">
+              {growthProjection.map((item) => (
+                <div className="bar-column" key={item.label}>
+                  <span>{formatMoney(item.value)}</span>
+                  <i
+                    style={{
+                      height: `${clamp(
+                        (item.value / maxProjectedRevenue) * 100,
+                        12,
+                        100,
+                      )}%`,
+                    }}
+                  />
+                  <b>{item.label}</b>
+                </div>
+              ))}
+            </div>
+
+            <div className="growth-math">
+              <div>
+                <span>Monthly lift target</span>
+                <strong>{formatMoney(projectedLiftDollars)}</strong>
+              </div>
+              <div>
+                <span>Est. monthly ACH drag</span>
+                <strong>{formatMoney(monthlyAchEstimate)}</strong>
+              </div>
+              <div className={netAfterDailyPayment >= 0 ? "good" : "bad"}>
+                <span>Room after payment</span>
+                <strong>{formatMoney(netAfterDailyPayment)}</strong>
+              </div>
+            </div>
+
+            <div className="playbook-grid">
+              {selectedIndustry.playbook.map((item, index) => (
+                <article key={item.title}>
+                  <span>{index + 1}</span>
+                  <div>
+                    <h4>{item.title}</h4>
+                    <p>{item.detail}</p>
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         </div>
