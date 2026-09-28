@@ -558,6 +558,30 @@ export default function Home() {
   const paymentCadence = paymentFrequency === "daily" ? "daily" : "weekly";
   const paymentRoomLabel =
     paymentFrequency === "daily" ? "daily payment room" : "weekly payment room";
+  const estimatedTermMonths = Math.max(1, Math.floor(termWeeks / 4.3));
+  const maxEarlyPayoffMonths = Math.min(5, estimatedTermMonths);
+  const earlyPayoffSchedule = Array.from(
+    { length: maxEarlyPayoffMonths },
+    (_, index) => {
+      const month = index + 1;
+      const discountRate = [0.18, 0.14, 0.1, 0.07, 0.05][index];
+      const collectedToDate =
+        paymentFrequency === "daily"
+          ? offer.dailyPayment * 21.5 * month
+          : offer.weeklyPayment * 4.3 * month;
+      const remainingBalance = Math.max(offer.payback - collectedToDate, 0);
+      const discountedBalance = remainingBalance * (1 - discountRate);
+      const principalFloor = Math.max(0, offer.amount - collectedToDate);
+      const payoffQuote = Math.max(discountedBalance, principalFloor);
+
+      return {
+        discountRate,
+        month,
+        payoffQuote,
+        savings: remainingBalance - payoffQuote,
+      };
+    },
+  );
   const offerModes = [
     {
       label: "Conservative",
@@ -825,6 +849,28 @@ export default function Home() {
                     Math.abs(offer.marginToCapacity),
                   )} over ${paymentRoomLabel}. Lower amount, extend term, or position payoff.`}
             </span>
+          </div>
+
+          <div className="payoff-card">
+            <div className="payoff-header">
+              <div>
+                <span>Early payoff</span>
+                <h3>Discount window</h3>
+              </div>
+              <strong>{maxEarlyPayoffMonths} mo</strong>
+            </div>
+            <div className="payoff-grid">
+              {earlyPayoffSchedule.map((payoff) => (
+                <div key={payoff.month}>
+                  <span>Month {payoff.month}</span>
+                  <strong>{formatMoney(payoff.payoffQuote)}</strong>
+                  <small>
+                    {formatPercent(payoff.discountRate)} off remaining · save{" "}
+                    {formatMoney(payoff.savings)}
+                  </small>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="scenario-grid">

@@ -552,6 +552,75 @@ input[type="range"] {
   background: var(--red-soft);
 }
 
+.payoff-card {
+  margin-top: 14px;
+  padding: 15px;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(243, 237, 255, 0.78), #ffffff 56%),
+    var(--surface);
+}
+
+.payoff-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.payoff-header span,
+.payoff-grid span {
+  display: block;
+  color: var(--purple);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.payoff-header h3 {
+  margin: 5px 0 0;
+  color: var(--navy);
+  font-size: 1.05rem;
+}
+
+.payoff-header strong {
+  min-width: 58px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--purple);
+  text-align: center;
+}
+
+.payoff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
+  gap: 9px;
+}
+
+.payoff-grid div {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.payoff-grid strong {
+  display: block;
+  margin: 8px 0 5px;
+  color: var(--navy);
+  font-size: 1.18rem;
+}
+
+.payoff-grid small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .scenario-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
