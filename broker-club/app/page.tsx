@@ -180,18 +180,15 @@ function formatMoney(value: number) {
   return currency.format(Math.round(value));
 }
 
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
 function getTier(score: number) {
   if (score >= 82) return "A file";
   if (score >= 68) return "B file";
   if (score >= 52) return "C file";
   return "High-risk file";
-}
-
-function getScoreColor(score: number) {
-  if (score >= 82) return "#16a34a";
-  if (score >= 68) return "#0ea5e9";
-  if (score >= 52) return "#f59e0b";
-  return "#ef4444";
 }
 
 export default function Home() {
@@ -324,186 +321,264 @@ export default function Home() {
       : "Average balance gives the underwriter comfort that daily ACH can clear.",
   ];
 
+  const approvalUse = amountValue / Math.max(maxAmount, 1);
+  const paymentUtilization =
+    offer.dailyPayment / Math.max(underwriting.dailyPaymentCapacity, 1);
+  const payoffPerDollar = offer.payback / Math.max(offer.amount, 1);
+  const offerModes = [
+    {
+      label: "Conservative",
+      amount: underwriting.maxApproval * 0.72,
+      term: 44,
+      note: "Easiest payment conversation.",
+    },
+    {
+      label: "Balanced",
+      amount: underwriting.maxApproval * 0.88,
+      term: 36,
+      note: "Best starting point for most calls.",
+    },
+    {
+      label: "Stretch",
+      amount: underwriting.maxApproval,
+      term: 30,
+      note: "Use when merchant pushes for max cash.",
+    },
+  ];
+
   return (
-    <main>
+    <main className="app-shell">
+      <header className="topbar">
+        <div className="brand-lockup">
+          <span className="brand-mark">BC</span>
+          <div>
+            <strong>Broker Club</strong>
+            <small>MCA sales engine</small>
+          </div>
+        </div>
+        <div className="call-flow" aria-label="Call workflow">
+          <span>1. Qualify</span>
+          <span>2. Size</span>
+          <span>3. Price</span>
+          <span>4. Close</span>
+        </div>
+      </header>
+
       <section className="hero">
-        <div>
-          <p className="eyebrow">Broker Club</p>
-          <h1>MCA Sales Engine</h1>
+        <div className="hero-copy">
+          <p className="eyebrow">Live offer desk</p>
+          <h1>Turn bank-statement signals into a cleaner phone offer.</h1>
           <p>
-            Price the call in seconds: cash-flow read, max approval, factor
-            movement, payment capacity, and industry-specific close angles in
-            one screen.
+            Enter the few details that actually move MCA underwriting, then
+            adjust amount and term while the approval, payment, and close angle
+            update in real time.
           </p>
         </div>
-        <div className="hero-panel" aria-label="Current approval snapshot">
-          <span>Estimated max approval</span>
+        <div className="hero-card" aria-label="Current approval snapshot">
+          <span className="status-pill">{underwriting.tier}</span>
+          <small>Estimated max approval</small>
           <strong>{formatMoney(underwriting.maxApproval)}</strong>
-          <em>{underwriting.tier} · score {underwriting.score}/100</em>
+          <div className="approval-bar">
+            <i style={{ width: `${clamp(approvalUse * 100, 0, 100)}%` }} />
+          </div>
+          <em>
+            Current ask uses {formatPercent(approvalUse)} of calculated capacity
+          </em>
         </div>
       </section>
 
-      <section className="workspace">
-        <div className="panel input-panel">
-          <div className="panel-title">
-            <div>
-              <span>01</span>
-              <h2>Quick Underwrite</h2>
-            </div>
-            <p>Use the few fields that actually move the offer.</p>
-          </div>
-
-          <div className="field-grid">
-            <label>
-              Monthly gross deposits
-              <input
-                type="number"
-                min="0"
-                value={monthlyRevenue}
-                onChange={(event) => setMonthlyRevenue(Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Average daily balance
-              <input
-                type="number"
-                min="0"
-                value={dailyBalance}
-                onChange={(event) => setDailyBalance(Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Owner credit score
-              <input
-                type="number"
-                min="450"
-                max="850"
-                value={creditScore}
-                onChange={(event) => setCreditScore(Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Months in business
-              <input
-                type="number"
-                min="0"
-                value={timeInBusiness}
-                onChange={(event) =>
-                  setTimeInBusiness(Number(event.target.value))
-                }
-              />
-            </label>
-            <label>
-              NSFs in last 90 days
-              <input
-                type="number"
-                min="0"
-                value={nsfs}
-                onChange={(event) => setNsfs(Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Negative days in 90 days
-              <input
-                type="number"
-                min="0"
-                value={negativeDays}
-                onChange={(event) => setNegativeDays(Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Existing daily MCA/loan debits
-              <input
-                type="number"
-                min="0"
-                value={existingDailyPayments}
-                onChange={(event) =>
-                  setExistingDailyPayments(Number(event.target.value))
-                }
-              />
-            </label>
-            <label>
-              Deposit pattern
-              <select
-                value={consistency}
-                onChange={(event) =>
-                  setConsistency(event.target.value as Consistency)
-                }
-              >
-                <option value="strong">Strong daily/weekly deposits</option>
-                <option value="steady">Steady but normal swings</option>
-                <option value="lumpy">Lumpy / transfer-heavy</option>
-              </select>
-            </label>
-          </div>
+      <section className="summary-grid" aria-label="Deal snapshot">
+        <div className="snapshot-card accent">
+          <span>Offer amount</span>
+          <strong>{formatMoney(amountValue)}</strong>
+          <small>{termWeeks} week term</small>
         </div>
+        <div className="snapshot-card">
+          <span>Daily ACH</span>
+          <strong>{formatMoney(offer.dailyPayment)}</strong>
+          <small>{formatPercent(paymentUtilization)} of payment room</small>
+        </div>
+        <div className="snapshot-card">
+          <span>Factor</span>
+          <strong>{offer.factor.toFixed(2)}</strong>
+          <small>{payoffPerDollar.toFixed(2)} payback per $1</small>
+        </div>
+        <div className="snapshot-card">
+          <span>Holdback</span>
+          <strong>{formatPercent(offer.holdback)}</strong>
+          <small>{formatMoney(underwriting.dailyRevenue)} est. daily rev</small>
+        </div>
+      </section>
 
-        <div className="panel offer-panel">
-          <div className="panel-title">
-            <div>
-              <span>02</span>
-              <h2>Offer Builder</h2>
-            </div>
-            <p>Move amount and term while the payment/rate reacts.</p>
+      <section className="deal-desk">
+        <aside className="panel input-panel">
+          <div className="panel-heading">
+            <span>Inputs</span>
+            <h2>Merchant profile</h2>
+            <p>Grouped the way an underwriter thinks: revenue, cash cushion, and stress signals.</p>
           </div>
 
-          <div className="meter">
-            <div
-              style={{
-                background: `conic-gradient(${getScoreColor(
-                  underwriting.score,
-                )} ${underwriting.score * 3.6}deg, #1d2430 0deg)`,
-              }}
-            >
-              <strong>{underwriting.score}</strong>
-              <span>{underwriting.tier}</span>
+          <div className="input-group">
+            <h3>Revenue & Cushion</h3>
+            <div className="field-grid">
+              <label>
+                Monthly gross deposits
+                <input
+                  type="number"
+                  min="0"
+                  value={monthlyRevenue}
+                  onChange={(event) =>
+                    setMonthlyRevenue(Number(event.target.value))
+                  }
+                />
+              </label>
+              <label>
+                Average daily balance
+                <input
+                  type="number"
+                  min="0"
+                  value={dailyBalance}
+                  onChange={(event) =>
+                    setDailyBalance(Number(event.target.value))
+                  }
+                />
+              </label>
+              <label>
+                Existing daily MCA/loan debits
+                <input
+                  type="number"
+                  min="0"
+                  value={existingDailyPayments}
+                  onChange={(event) =>
+                    setExistingDailyPayments(Number(event.target.value))
+                  }
+                />
+              </label>
+              <label>
+                Deposit pattern
+                <select
+                  value={consistency}
+                  onChange={(event) =>
+                    setConsistency(event.target.value as Consistency)
+                  }
+                >
+                  <option value="strong">Strong daily/weekly deposits</option>
+                  <option value="steady">Steady with normal swings</option>
+                  <option value="lumpy">Lumpy / transfer-heavy</option>
+                </select>
+              </label>
             </div>
-            <ul>
-              <li>
-                Daily revenue estimate <b>{formatMoney(underwriting.dailyRevenue)}</b>
-              </li>
-              <li>
-                New daily payment room{" "}
-                <b>{formatMoney(underwriting.dailyPaymentCapacity)}</b>
-              </li>
-              <li>
-                Balance coverage <b>{underwriting.balanceCoverage.toFixed(1)}x</b>
-              </li>
-            </ul>
           </div>
 
-          <label className="slider-row">
-            <span>
-              Funding amount <b>{formatMoney(amountValue)}</b>
-            </span>
-            <input
-              type="range"
-              min="5000"
-              max={maxAmount}
-              step="1000"
-              value={amountValue}
-              onChange={(event) => updateMaxAwareAmount(Number(event.target.value))}
-            />
-          </label>
-          <label className="slider-row">
-            <span>
-              Term <b>{termWeeks} weeks</b>
-            </span>
-            <input
-              type="range"
-              min="12"
-              max="72"
-              step="2"
-              value={termWeeks}
-              onChange={(event) => setTermWeeks(Number(event.target.value))}
-            />
-          </label>
-
-          <div className="offer-grid">
-            <div>
-              <span>Factor</span>
-              <strong>{offer.factor.toFixed(2)}</strong>
+          <div className="input-group">
+            <h3>Risk & Eligibility</h3>
+            <div className="field-grid">
+              <label>
+                Owner credit score
+                <input
+                  type="number"
+                  min="450"
+                  max="850"
+                  value={creditScore}
+                  onChange={(event) =>
+                    setCreditScore(Number(event.target.value))
+                  }
+                />
+              </label>
+              <label>
+                Months in business
+                <input
+                  type="number"
+                  min="0"
+                  value={timeInBusiness}
+                  onChange={(event) =>
+                    setTimeInBusiness(Number(event.target.value))
+                  }
+                />
+              </label>
+              <label>
+                NSFs in last 90 days
+                <input
+                  type="number"
+                  min="0"
+                  value={nsfs}
+                  onChange={(event) => setNsfs(Number(event.target.value))}
+                />
+              </label>
+              <label>
+                Negative days in 90 days
+                <input
+                  type="number"
+                  min="0"
+                  value={negativeDays}
+                  onChange={(event) =>
+                    setNegativeDays(Number(event.target.value))
+                  }
+                />
+              </label>
             </div>
+          </div>
+        </aside>
+
+        <section className="panel offer-panel">
+          <div className="panel-heading horizontal">
+            <div>
+              <span>Offer</span>
+              <h2>Approval builder</h2>
+            </div>
+            <div className="score-badge">
+              <b>{underwriting.score}</b>
+              <small>{underwriting.tier}</small>
+            </div>
+          </div>
+
+          <div className="underwriting-strip">
+            <div>
+              <span>Daily revenue</span>
+              <b>{formatMoney(underwriting.dailyRevenue)}</b>
+            </div>
+            <div>
+              <span>Payment room</span>
+              <b>{formatMoney(underwriting.dailyPaymentCapacity)}</b>
+            </div>
+            <div>
+              <span>Balance coverage</span>
+              <b>{underwriting.balanceCoverage.toFixed(1)}x</b>
+            </div>
+          </div>
+
+          <div className="slider-card">
+            <label className="slider-row">
+              <span>
+                Funding amount <b>{formatMoney(amountValue)}</b>
+              </span>
+              <input
+                type="range"
+                min="5000"
+                max={maxAmount}
+                step="1000"
+                value={amountValue}
+                onChange={(event) =>
+                  updateMaxAwareAmount(Number(event.target.value))
+                }
+              />
+            </label>
+            <label className="slider-row">
+              <span>
+                Term <b>{termWeeks} weeks</b>
+              </span>
+              <input
+                type="range"
+                min="12"
+                max="72"
+                step="2"
+                value={termWeeks}
+                onChange={(event) => setTermWeeks(Number(event.target.value))}
+              />
+            </label>
+          </div>
+
+          <div className="numbers-grid">
             <div>
               <span>Total payback</span>
               <strong>{formatMoney(offer.payback)}</strong>
@@ -513,8 +588,12 @@ export default function Home() {
               <strong>{formatMoney(offer.dailyPayment)}</strong>
             </div>
             <div>
-              <span>Holdback est.</span>
-              <strong>{Math.round(offer.holdback * 100)}%</strong>
+              <span>Factor</span>
+              <strong>{offer.factor.toFixed(2)}</strong>
+            </div>
+            <div>
+              <span>Term days</span>
+              <strong>{offer.termDays}</strong>
             </div>
           </div>
 
@@ -523,25 +602,42 @@ export default function Home() {
               offer.marginToCapacity >= 0 ? "capacity good" : "capacity bad"
             }
           >
-            {offer.marginToCapacity >= 0
-              ? `${formatMoney(
-                  offer.marginToCapacity,
-                )} cushion under estimated daily payment capacity.`
-              : `${formatMoney(
-                  Math.abs(offer.marginToCapacity),
-                )} over capacity. Lower amount, extend term, or sell a payoff/consolidation.`}
+            <b>{offer.marginToCapacity >= 0 ? "Payment fits" : "Payment pressure"}</b>
+            <span>
+              {offer.marginToCapacity >= 0
+                ? `${formatMoney(
+                    offer.marginToCapacity,
+                  )} cushion under estimated daily capacity.`
+                : `${formatMoney(
+                    Math.abs(offer.marginToCapacity),
+                  )} over capacity. Lower amount, extend term, or position payoff.`}
+            </span>
           </div>
-        </div>
+
+          <div className="scenario-grid">
+            {offerModes.map((mode) => (
+              <button
+                type="button"
+                key={mode.label}
+                onClick={() => {
+                  updateMaxAwareAmount(Math.round(mode.amount / 1000) * 1000);
+                  setTermWeeks(mode.term);
+                }}
+              >
+                <b>{mode.label}</b>
+                <span>{formatMoney(mode.amount)}</span>
+                <small>{mode.note}</small>
+              </button>
+            ))}
+          </div>
+        </section>
       </section>
 
       <section className="close-zone">
-        <div className="panel">
-          <div className="panel-title">
-            <div>
-              <span>03</span>
-              <h2>Underwriter Read</h2>
-            </div>
-            <p>What to mention before the merchant asks why.</p>
+        <div className="panel read-panel">
+          <div className="panel-heading">
+            <span>Underwriter read</span>
+            <h2>Say the objection before they do.</h2>
           </div>
           <ul className="signal-list">
             {redFlags.map((flag) => (
@@ -551,37 +647,35 @@ export default function Home() {
           <div className="talk-track">
             <span>Phone line</span>
             <p>
-              “Based on the revenue and average balance, I would not pitch this
-              as just ‘how much is 100K.’ I’d frame it as{" "}
-              <b>{formatMoney(amountValue)}</b> with a payment around{" "}
-              <b>{formatMoney(offer.dailyPayment)}</b> daily. If that payment
-              feels tight, we adjust the term or amount before underwriting
-              does it for us.”
+              “I would not just quote this as ‘how much is 100K.’ Based on the
+              deposits and balance, I’d frame <b>{formatMoney(amountValue)}</b>{" "}
+              around <b>{formatMoney(offer.dailyPayment)}</b> daily. If that
+              payment feels tight, we tune the term now before underwriting
+              cuts it for us.”
             </p>
           </div>
         </div>
 
         <div className="panel industry-panel">
-          <div className="panel-title">
+          <div className="panel-heading horizontal">
             <div>
-              <span>04</span>
-              <h2>Industry Close</h2>
+              <span>Industry close</span>
+              <h2>Make the capital feel specific.</h2>
             </div>
-            <p>Give them a use case that sounds like their business.</p>
+            <label className="industry-select">
+              Merchant industry
+              <select
+                value={industryId}
+                onChange={(event) => setIndustryId(event.target.value)}
+              >
+                {industries.map((industry) => (
+                  <option key={industry.id} value={industry.id}>
+                    {industry.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-          <label className="industry-select">
-            Merchant industry
-            <select
-              value={industryId}
-              onChange={(event) => setIndustryId(event.target.value)}
-            >
-              {industries.map((industry) => (
-                <option key={industry.id} value={industry.id}>
-                  {industry.name}
-                </option>
-              ))}
-            </select>
-          </label>
           <h3>{selectedIndustry.headline}</h3>
           <div className="use-grid">
             <div>
@@ -605,7 +699,7 @@ export default function Home() {
       </section>
 
       <section className="reference-strip" aria-label="Underwriting basis">
-        <strong>Built around common MCA underwriting signals:</strong>
+        <strong>Underwriting basis</strong>
         <span>monthly deposits</span>
         <span>average daily balance</span>
         <span>NSFs / negative days</span>
