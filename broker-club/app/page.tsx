@@ -349,61 +349,31 @@ export default function Home() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="brand-lockup">
-          <span className="brand-mark">BC</span>
-          <div>
-            <strong>Broker Club</strong>
-            <small>MCA sales engine</small>
-          </div>
-        </div>
-        <div className="call-flow" aria-label="Call workflow">
-          <span>1. Qualify</span>
-          <span>2. Size</span>
-          <span>3. Price</span>
-          <span>4. Close</span>
-        </div>
+        <h1>Broker Club</h1>
       </header>
 
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">Live offer desk</p>
-          <h1>Turn bank-statement signals into a cleaner phone offer.</h1>
-          <p>
-            Enter the few details that actually move MCA underwriting, then
-            adjust amount and term while the approval, payment, and close angle
-            update in real time.
-          </p>
-        </div>
-        <div className="hero-card" aria-label="Current approval snapshot">
-          <span className="status-pill">{underwriting.tier}</span>
-          <small>Estimated max approval</small>
-          <strong>{formatMoney(underwriting.maxApproval)}</strong>
-          <div className="approval-bar">
-            <i style={{ width: `${clamp(approvalUse * 100, 0, 100)}%` }} />
-          </div>
-          <em>
-            Current ask uses {formatPercent(approvalUse)} of calculated capacity
-          </em>
-        </div>
-      </section>
-
       <section className="summary-grid" aria-label="Deal snapshot">
-        <div className="snapshot-card accent">
+        <div className="snapshot-card approval-card">
+          <span>Max approval</span>
+          <strong>{formatMoney(underwriting.maxApproval)}</strong>
+          <small>{underwriting.tier} · score {underwriting.score}/100</small>
+        </div>
+        <div className="snapshot-card offer-card">
           <span>Offer amount</span>
           <strong>{formatMoney(amountValue)}</strong>
-          <small>{termWeeks} week term</small>
+          <small>{formatPercent(approvalUse)} of max</small>
         </div>
-        <div className="snapshot-card">
+        <div className="snapshot-card payment-card">
           <span>Daily ACH</span>
           <strong>{formatMoney(offer.dailyPayment)}</strong>
           <small>{formatPercent(paymentUtilization)} of payment room</small>
         </div>
-        <div className="snapshot-card">
+        <div className="snapshot-card pricing-card">
           <span>Factor</span>
           <strong>{offer.factor.toFixed(2)}</strong>
           <small>{payoffPerDollar.toFixed(2)} payback per $1</small>
         </div>
-        <div className="snapshot-card">
+        <div className="snapshot-card holdback-card">
           <span>Holdback</span>
           <strong>{formatPercent(offer.holdback)}</strong>
           <small>{formatMoney(underwriting.dailyRevenue)} est. daily rev</small>
@@ -411,11 +381,10 @@ export default function Home() {
       </section>
 
       <section className="deal-desk">
-        <aside className="panel input-panel">
+        <aside className="panel input-panel section-blue">
           <div className="panel-heading">
             <span>Inputs</span>
             <h2>Merchant profile</h2>
-            <p>Grouped the way an underwriter thinks: revenue, cash cushion, and stress signals.</p>
           </div>
 
           <div className="input-group">
@@ -520,7 +489,7 @@ export default function Home() {
           </div>
         </aside>
 
-        <section className="panel offer-panel">
+        <section className="panel offer-panel section-green">
           <div className="panel-heading horizontal">
             <div>
               <span>Offer</span>
@@ -634,10 +603,10 @@ export default function Home() {
       </section>
 
       <section className="close-zone">
-        <div className="panel read-panel">
+        <div className="panel read-panel section-amber">
           <div className="panel-heading">
-            <span>Underwriter read</span>
-            <h2>Say the objection before they do.</h2>
+            <span>Read</span>
+            <h2>Underwriter notes</h2>
           </div>
           <ul className="signal-list">
             {redFlags.map((flag) => (
@@ -656,11 +625,11 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="panel industry-panel">
+        <div className="panel industry-panel section-purple">
           <div className="panel-heading horizontal">
             <div>
-              <span>Industry close</span>
-              <h2>Make the capital feel specific.</h2>
+              <span>Close</span>
+              <h2>Industry angle</h2>
             </div>
             <label className="industry-select">
               Merchant industry
@@ -699,14 +668,13 @@ export default function Home() {
       </section>
 
       <section className="reference-strip" aria-label="Underwriting basis">
-        <strong>Underwriting basis</strong>
-        <span>monthly deposits</span>
-        <span>average daily balance</span>
-        <span>NSFs / negative days</span>
-        <span>existing ACH debits</span>
-        <span>time in business</span>
+        <strong>Basis</strong>
+        <span>deposits</span>
+        <span>balance</span>
+        <span>NSFs</span>
+        <span>negative days</span>
+        <span>daily debits</span>
         <span>credit</span>
-        <span>industry risk</span>
       </section>
     </main>
   );
