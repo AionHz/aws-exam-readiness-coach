@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 type DepositPattern = "strong" | "steady" | "lumpy";
 type BankHealth = "clean" | "workable" | "stressed";
+type PaymentFrequency = "daily" | "weekly";
 
 type Industry = {
   id: string;
@@ -410,6 +411,8 @@ export default function Home() {
   const [industryId, setIndustryId] = useState("restaurant");
   const [offerPercent, setOfferPercent] = useState(1);
   const [termWeeks, setTermWeeks] = useState(36);
+  const [paymentFrequency, setPaymentFrequency] =
+    useState<PaymentFrequency>("daily");
 
   const selectedIndustry =
     industries.find((industry) => industry.id === industryId) ?? industries[0];
@@ -504,9 +507,15 @@ export default function Home() {
     const payback = amount * factor;
     const termDays = termWeeks * 5;
     const dailyPayment = payback / termDays;
+    const weeklyPayment = payback / termWeeks;
+    const paymentAmount =
+      paymentFrequency === "daily" ? dailyPayment : weeklyPayment;
+    const paymentCapacity =
+      paymentFrequency === "daily"
+        ? underwriting.dailyPaymentCapacity
+        : underwriting.dailyPaymentCapacity * 5;
     const holdback = dailyPayment / Math.max(underwriting.dailyRevenue, 1);
-    const marginToCapacity =
-      underwriting.dailyPaymentCapacity - dailyPayment;
+    const marginToCapacity = paymentCapacity - paymentAmount;
 
     return {
       amount,
@@ -514,10 +523,13 @@ export default function Home() {
       factor,
       holdback,
       marginToCapacity,
+      paymentAmount,
+      paymentCapacity,
       payback,
       termDays,
+      weeklyPayment,
     };
-  }, [amountValue, maxAmount, termWeeks, underwriting]);
+  }, [amountValue, maxAmount, paymentFrequency, termWeeks, underwriting]);
 
   function updateMaxAwareAmount(value: number) {
     setOfferPercent(clamp(value / Math.max(maxAmount, 1), 5000 / maxAmount, 1));
@@ -540,8 +552,12 @@ export default function Home() {
 
   const approvalUse = amountValue / Math.max(maxAmount, 1);
   const paymentUtilization =
-    offer.dailyPayment / Math.max(underwriting.dailyPaymentCapacity, 1);
+    offer.paymentAmount / Math.max(offer.paymentCapacity, 1);
   const payoffPerDollar = offer.payback / Math.max(offer.amount, 1);
+  const paymentLabel = paymentFrequency === "daily" ? "Daily ACH" : "Weekly ACH";
+  const paymentCadence = paymentFrequency === "daily" ? "daily" : "weekly";
+  const paymentRoomLabel =
+    paymentFrequency === "daily" ? "daily payment room" : "weekly payment room";
   const offerModes = [
     {
       label: "Conservative",
@@ -572,7 +588,8 @@ export default function Home() {
   const maxProjectedRevenue = Math.max(
     ...growthProjection.map((item) => item.value),
   );
-  const monthlyAchEstimate = offer.dailyPayment * 21.5;
+  const monthlyAchEstimate =
+    paymentFrequency === "daily" ? offer.dailyPayment * 21.5 : offer.weeklyPayment * 4.3;
   const projectedLiftDollars =
     growthProjection[growthProjection.length - 1].value - monthlyRevenue;
   const netAfterDailyPayment = projectedLiftDollars - monthlyAchEstimate;
@@ -590,8 +607,8 @@ export default function Home() {
           <small>Max approval · {underwriting.tier}</small>
         </div>
         <div className="snapshot-card payment-card">
-          <span>Daily ACH</span>
-          <strong>{formatMoney(offer.dailyPayment)}</strong>
+          <span>{paymentLabel}</span>
+          <strong>{formatMoney(offer.paymentAmount)}</strong>
           <small>{formatPercent(paymentUtilization)} of payment room</small>
         </div>
         <div className="snapshot-card approval-card">
@@ -702,13 +719,32 @@ export default function Home() {
               <small>Starts at max approval, then tune it live.</small>
             </div>
             <div className="payment-focus">
-              <span>Daily ACH</span>
-              <strong>{formatMoney(offer.dailyPayment)}</strong>
+              <span>{paymentLabel}</span>
+              <strong>{formatMoney(offer.paymentAmount)}</strong>
               <small>{formatPercent(offer.holdback)} holdback</small>
             </div>
           </div>
 
           <div className="slider-card">
+            <div className="frequency-control" aria-label="Payment frequency">
+              <span>Payment option</span>
+              <div>
+                <button
+                  type="button"
+                  className={paymentFrequency === "daily" ? "is-active" : ""}
+                  onClick={() => setPaymentFrequency("daily")}
+                >
+                  Daily
+                </button>
+                <button
+                  type="button"
+                  className={paymentFrequency === "weekly" ? "is-active" : ""}
+                  onClick={() => setPaymentFrequency("weekly")}
+                >
+                  Weekly
+                </button>
+              </div>
+            </div>
             <label className="slider-row">
               <span>
                 Offer amount <b>{formatMoney(amountValue)}</b>
@@ -747,7 +783,7 @@ export default function Home() {
             </div>
             <div>
               <span>Payment room</span>
-              <b>{formatMoney(underwriting.dailyPaymentCapacity)}</b>
+              <b>{formatMoney(offer.paymentCapacity)}</b>
             </div>
             <div>
               <span>Balance coverage</span>
@@ -761,16 +797,16 @@ export default function Home() {
               <strong>{formatMoney(offer.payback)}</strong>
             </div>
             <div>
-              <span>Daily ACH</span>
+              <span>Daily option</span>
               <strong>{formatMoney(offer.dailyPayment)}</strong>
+            </div>
+            <div>
+              <span>Weekly option</span>
+              <strong>{formatMoney(offer.weeklyPayment)}</strong>
             </div>
             <div>
               <span>Factor</span>
               <strong>{offer.factor.toFixed(2)}</strong>
-            </div>
-            <div>
-              <span>Term days</span>
-              <strong>{offer.termDays}</strong>
             </div>
           </div>
 
@@ -784,10 +820,10 @@ export default function Home() {
               {offer.marginToCapacity >= 0
                 ? `${formatMoney(
                     offer.marginToCapacity,
-                  )} cushion under estimated daily capacity.`
+                  )} cushion under estimated ${paymentRoomLabel}.`
                 : `${formatMoney(
                     Math.abs(offer.marginToCapacity),
-                  )} over capacity. Lower amount, extend term, or position payoff.`}
+                  )} over ${paymentRoomLabel}. Lower amount, extend term, or position payoff.`}
             </span>
           </div>
 
@@ -826,7 +862,7 @@ export default function Home() {
             <p>
               “I would not just quote this as ‘how much is 100K.’ Based on the
               deposits and balance, I’d frame <b>{formatMoney(amountValue)}</b>{" "}
-              around <b>{formatMoney(offer.dailyPayment)}</b> daily. If that
+              around <b>{formatMoney(offer.paymentAmount)}</b> {paymentCadence}. If that
               payment feels tight, we tune the term now before underwriting
               cuts it for us.”
             </p>
