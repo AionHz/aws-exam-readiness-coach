@@ -108,7 +108,7 @@ label,
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: 1.25fr repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -258,6 +258,22 @@ h2 {
   background: #fff8e8;
 }
 
+.input-note {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid rgba(15, 159, 110, 0.22);
+  border-radius: 8px;
+  color: #065f46;
+  background: var(--green-soft);
+  line-height: 1.45;
+}
+
+.input-note b {
+  color: var(--navy);
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -318,7 +334,7 @@ select:focus {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 14px;
+  margin: 14px 0;
 }
 
 .underwriting-strip div,
@@ -357,6 +373,62 @@ select:focus {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: linear-gradient(180deg, #eef7ff, #ffffff);
+}
+
+.offer-focus-grid {
+  display: grid;
+  grid-template-columns: 1.32fr 0.68fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.offer-focus,
+.payment-focus {
+  display: grid;
+  gap: 7px;
+  min-height: 152px;
+  padding: 18px;
+  border-radius: 8px;
+}
+
+.offer-focus {
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(37, 99, 235, 0.95)),
+    var(--navy);
+}
+
+.payment-focus {
+  border: 1px solid rgba(15, 159, 110, 0.24);
+  color: #064e3b;
+  background: var(--green-soft);
+}
+
+.offer-focus span,
+.payment-focus span {
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.offer-focus strong,
+.payment-focus strong {
+  align-self: center;
+  font-size: clamp(2.1rem, 5vw, 4.1rem);
+  line-height: 0.98;
+}
+
+.payment-focus strong {
+  color: var(--green);
+  font-size: clamp(1.9rem, 3vw, 2.9rem);
+}
+
+.offer-focus small,
+.payment-focus small,
+.slider-row small {
+  color: inherit;
+  opacity: 0.78;
+  font-weight: 800;
 }
 
 .slider-row + .slider-row {
@@ -798,6 +870,7 @@ input[type="range"] {
   }
 
   .summary-grid,
+  .offer-focus-grid,
   .underwriting-strip,
   .numbers-grid,
   .scenario-grid,

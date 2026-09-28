@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 
-type Consistency = "strong" | "steady" | "lumpy";
+type DepositPattern = "strong" | "steady" | "lumpy";
+type BankHealth = "clean" | "workable" | "stressed";
 
 type Industry = {
   id: string;
@@ -342,6 +343,39 @@ const industries: Industry[] = [
   },
 ];
 
+const bankHealthProfiles: Record<
+  BankHealth,
+  {
+    label: string;
+    nsfs: number;
+    negativeDays: number;
+    consistency: DepositPattern;
+    summary: string;
+  }
+> = {
+  clean: {
+    label: "Clean bank activity",
+    nsfs: 0,
+    negativeDays: 0,
+    consistency: "strong",
+    summary: "Clean bank pattern gives room to lead with the approval.",
+  },
+  workable: {
+    label: "Normal swings",
+    nsfs: 1,
+    negativeDays: 2,
+    consistency: "steady",
+    summary: "Normal bank swings; keep payment language realistic.",
+  },
+  stressed: {
+    label: "Stressed activity",
+    nsfs: 5,
+    negativeDays: 8,
+    consistency: "lumpy",
+    summary: "Bank activity is stressed; expect a tighter underwriter read.",
+  },
+};
+
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -371,17 +405,16 @@ export default function Home() {
   const [monthlyRevenue, setMonthlyRevenue] = useState(125000);
   const [dailyBalance, setDailyBalance] = useState(14500);
   const [creditScore, setCreditScore] = useState(665);
-  const [timeInBusiness, setTimeInBusiness] = useState(36);
-  const [nsfs, setNsfs] = useState(1);
-  const [negativeDays, setNegativeDays] = useState(0);
   const [existingDailyPayments, setExistingDailyPayments] = useState(425);
-  const [consistency, setConsistency] = useState<Consistency>("steady");
+  const [bankHealth, setBankHealth] = useState<BankHealth>("workable");
   const [industryId, setIndustryId] = useState("restaurant");
-  const [requestedAmount, setRequestedAmount] = useState(100000);
+  const [offerPercent, setOfferPercent] = useState(1);
   const [termWeeks, setTermWeeks] = useState(36);
 
   const selectedIndustry =
     industries.find((industry) => industry.id === industryId) ?? industries[0];
+  const bankProfile = bankHealthProfiles[bankHealth];
+  const timeInBusiness = 36;
 
   const underwriting = useMemo(() => {
     const dailyRevenue = monthlyRevenue / 21.5;
@@ -392,9 +425,13 @@ export default function Home() {
     const timePoints = clamp(timeInBusiness / 2, 0, 18);
     const industryPoints = selectedIndustry.favor;
     const consistencyPoints =
-      consistency === "strong" ? 8 : consistency === "steady" ? 4 : -6;
-    const nsfPenalty = nsfs * 4;
-    const negativePenalty = negativeDays * 2.2;
+      bankProfile.consistency === "strong"
+        ? 8
+        : bankProfile.consistency === "steady"
+          ? 4
+          : -6;
+    const nsfPenalty = bankProfile.nsfs * 4;
+    const negativePenalty = bankProfile.negativeDays * 2.2;
     const debitPenalty = clamp(existingDailyPayments / Math.max(dailyRevenue, 1), 0, 0.4) * 35;
     const rawScore =
       24 +
@@ -440,15 +477,22 @@ export default function Home() {
     dailyBalance,
     existingDailyPayments,
     monthlyRevenue,
-    negativeDays,
-    nsfs,
+    bankProfile,
     selectedIndustry.favor,
     timeInBusiness,
-    consistency,
   ]);
 
+  const maxAmount = Math.max(
+    5000,
+    Math.round(underwriting.maxApproval / 1000) * 1000,
+  );
+  const amountValue = Math.max(
+    5000,
+    Math.round((maxAmount * offerPercent) / 1000) * 1000,
+  );
+
   const offer = useMemo(() => {
-    const amount = clamp(requestedAmount, 5000, underwriting.maxApproval);
+    const amount = clamp(amountValue, 5000, maxAmount);
     const amountPressure = amount / Math.max(underwriting.maxApproval, 1);
     const termPressure = (termWeeks - 24) / 52;
     const scoreDiscount = clamp((underwriting.score - 70) / 260, -0.05, 0.05);
@@ -473,20 +517,17 @@ export default function Home() {
       payback,
       termDays,
     };
-  }, [requestedAmount, termWeeks, underwriting]);
-
-  const maxAmount = Math.max(5000, Math.round(underwriting.maxApproval / 1000) * 1000);
-  const amountValue = clamp(requestedAmount, 5000, maxAmount);
+  }, [amountValue, maxAmount, termWeeks, underwriting]);
 
   function updateMaxAwareAmount(value: number) {
-    setRequestedAmount(clamp(value, 5000, maxAmount));
+    setOfferPercent(clamp(value / Math.max(maxAmount, 1), 5000 / maxAmount, 1));
   }
 
   const redFlags = [
-    negativeDays > 5
+    bankProfile.negativeDays > 5
       ? "Too many negative days: expect stips, lower approval, or decline pressure."
       : "Negative-day pattern is workable.",
-    nsfs > 3
+    bankProfile.nsfs > 3
       ? "NSF count is high; sell the file around recent clean activity if available."
       : "NSF count is not the main objection.",
     existingDailyPayments > underwriting.dailyRevenue * 0.12
@@ -543,30 +584,25 @@ export default function Home() {
       </header>
 
       <section className="summary-grid" aria-label="Deal snapshot">
-        <div className="snapshot-card approval-card">
-          <span>Max approval</span>
-          <strong>{formatMoney(underwriting.maxApproval)}</strong>
-          <small>{underwriting.tier} · score {underwriting.score}/100</small>
-        </div>
         <div className="snapshot-card offer-card">
-          <span>Offer amount</span>
+          <span>Offer</span>
           <strong>{formatMoney(amountValue)}</strong>
-          <small>{formatPercent(approvalUse)} of max</small>
+          <small>Max approval · {underwriting.tier}</small>
         </div>
         <div className="snapshot-card payment-card">
           <span>Daily ACH</span>
           <strong>{formatMoney(offer.dailyPayment)}</strong>
           <small>{formatPercent(paymentUtilization)} of payment room</small>
         </div>
+        <div className="snapshot-card approval-card">
+          <span>Total payback</span>
+          <strong>{formatMoney(offer.payback)}</strong>
+          <small>{termWeeks} weeks · {offer.termDays} ACH days</small>
+        </div>
         <div className="snapshot-card pricing-card">
           <span>Factor</span>
           <strong>{offer.factor.toFixed(2)}</strong>
           <small>{payoffPerDollar.toFixed(2)} payback per $1</small>
-        </div>
-        <div className="snapshot-card holdback-card">
-          <span>Holdback</span>
-          <strong>{formatPercent(offer.holdback)}</strong>
-          <small>{formatMoney(underwriting.dailyRevenue)} est. daily rev</small>
         </div>
       </section>
 
@@ -578,7 +614,7 @@ export default function Home() {
           </div>
 
           <div className="input-group">
-            <h3>Revenue & Cushion</h3>
+            <h3>Quick offer inputs</h3>
             <div className="field-grid">
               <label>
                 Monthly gross deposits
@@ -614,25 +650,6 @@ export default function Home() {
                 />
               </label>
               <label>
-                Deposit pattern
-                <select
-                  value={consistency}
-                  onChange={(event) =>
-                    setConsistency(event.target.value as Consistency)
-                  }
-                >
-                  <option value="strong">Strong daily/weekly deposits</option>
-                  <option value="steady">Steady with normal swings</option>
-                  <option value="lumpy">Lumpy / transfer-heavy</option>
-                </select>
-              </label>
-            </div>
-          </div>
-
-          <div className="input-group">
-            <h3>Risk & Eligibility</h3>
-            <div className="field-grid">
-              <label>
                 Owner credit score
                 <input
                   type="number"
@@ -645,37 +662,24 @@ export default function Home() {
                 />
               </label>
               <label>
-                Months in business
-                <input
-                  type="number"
-                  min="0"
-                  value={timeInBusiness}
+                Bank activity
+                <select
+                  value={bankHealth}
                   onChange={(event) =>
-                    setTimeInBusiness(Number(event.target.value))
+                    setBankHealth(event.target.value as BankHealth)
                   }
-                />
-              </label>
-              <label>
-                NSFs in last 90 days
-                <input
-                  type="number"
-                  min="0"
-                  value={nsfs}
-                  onChange={(event) => setNsfs(Number(event.target.value))}
-                />
-              </label>
-              <label>
-                Negative days in 90 days
-                <input
-                  type="number"
-                  min="0"
-                  value={negativeDays}
-                  onChange={(event) =>
-                    setNegativeDays(Number(event.target.value))
-                  }
-                />
+                >
+                  <option value="clean">Clean</option>
+                  <option value="workable">Normal swings</option>
+                  <option value="stressed">Stressed</option>
+                </select>
               </label>
             </div>
+          </div>
+
+          <div className="input-note">
+            <b>{bankHealthProfiles[bankHealth].label}</b>
+            <span>{bankProfile.summary}</span>
           </div>
         </aside>
 
@@ -683,12 +687,57 @@ export default function Home() {
           <div className="panel-heading horizontal">
             <div>
               <span>Offer</span>
-              <h2>Approval builder</h2>
+              <h2>Approval desk</h2>
             </div>
             <div className="score-badge">
               <b>{underwriting.score}</b>
               <small>{underwriting.tier}</small>
             </div>
+          </div>
+
+          <div className="offer-focus-grid">
+            <div className="offer-focus">
+              <span>Offer</span>
+              <strong>{formatMoney(amountValue)}</strong>
+              <small>Starts at max approval, then tune it live.</small>
+            </div>
+            <div className="payment-focus">
+              <span>Daily ACH</span>
+              <strong>{formatMoney(offer.dailyPayment)}</strong>
+              <small>{formatPercent(offer.holdback)} holdback</small>
+            </div>
+          </div>
+
+          <div className="slider-card">
+            <label className="slider-row">
+              <span>
+                Offer amount <b>{formatMoney(amountValue)}</b>
+              </span>
+              <input
+                type="range"
+                min="5000"
+                max={maxAmount}
+                step="1000"
+                value={amountValue}
+                onChange={(event) =>
+                  updateMaxAwareAmount(Number(event.target.value))
+                }
+              />
+              <small>{formatPercent(approvalUse)} of approval</small>
+            </label>
+            <label className="slider-row">
+              <span>
+                Term <b>{termWeeks} weeks</b>
+              </span>
+              <input
+                type="range"
+                min="12"
+                max="72"
+                step="2"
+                value={termWeeks}
+                onChange={(event) => setTermWeeks(Number(event.target.value))}
+              />
+            </label>
           </div>
 
           <div className="underwriting-strip">
@@ -704,37 +753,6 @@ export default function Home() {
               <span>Balance coverage</span>
               <b>{underwriting.balanceCoverage.toFixed(1)}x</b>
             </div>
-          </div>
-
-          <div className="slider-card">
-            <label className="slider-row">
-              <span>
-                Funding amount <b>{formatMoney(amountValue)}</b>
-              </span>
-              <input
-                type="range"
-                min="5000"
-                max={maxAmount}
-                step="1000"
-                value={amountValue}
-                onChange={(event) =>
-                  updateMaxAwareAmount(Number(event.target.value))
-                }
-              />
-            </label>
-            <label className="slider-row">
-              <span>
-                Term <b>{termWeeks} weeks</b>
-              </span>
-              <input
-                type="range"
-                min="12"
-                max="72"
-                step="2"
-                value={termWeeks}
-                onChange={(event) => setTermWeeks(Number(event.target.value))}
-              />
-            </label>
           </div>
 
           <div className="numbers-grid">
@@ -918,8 +936,7 @@ export default function Home() {
         <strong>Basis</strong>
         <span>deposits</span>
         <span>balance</span>
-        <span>NSFs</span>
-        <span>negative days</span>
+        <span>bank activity</span>
         <span>daily debits</span>
         <span>credit</span>
       </section>
