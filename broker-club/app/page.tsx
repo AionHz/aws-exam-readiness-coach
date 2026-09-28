@@ -577,6 +577,7 @@ export default function Home() {
       return {
         discountRate,
         month,
+        label: `${month} ${month === 1 ? "month" : "months"}`,
         payoffQuote,
         savings: remainingBalance - payoffQuote,
       };
@@ -857,12 +858,12 @@ export default function Home() {
                 <span>Early payoff</span>
                 <h3>Discount window</h3>
               </div>
-              <strong>{maxEarlyPayoffMonths} mo</strong>
+              <strong>{maxEarlyPayoffMonths} months</strong>
             </div>
             <div className="payoff-grid">
               {earlyPayoffSchedule.map((payoff) => (
                 <div key={payoff.month}>
-                  <span>Month {payoff.month}</span>
+                  <span>{payoff.label}</span>
                   <strong>{formatMoney(payoff.payoffQuote)}</strong>
                   <small>
                     {formatPercent(payoff.discountRate)} off remaining · save{" "}
