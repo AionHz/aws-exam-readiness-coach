@@ -1505,21 +1505,24 @@ const bankHealthProfiles: Record<
     nsfs: 0,
     negativeDays: 0,
     consistency: "strong",
-    summary: "Clean bank pattern gives room to lead with the approval.",
+    summary:
+      "Lead with certainty: clean activity lets you sell speed and fit before price.",
   },
   workable: {
     label: "Normal swings",
     nsfs: 1,
     negativeDays: 2,
     consistency: "steady",
-    summary: "Normal bank swings; keep payment language realistic.",
+    summary:
+      "Workable file: keep the payment story tight and anchor every dollar to a use.",
   },
   stressed: {
     label: "Stressed activity",
     nsfs: 5,
     negativeDays: 8,
     consistency: "lumpy",
-    summary: "Bank activity is stressed; expect a tighter underwriter read.",
+    summary:
+      "Control the sale: resize first, ask for fresh clean days, and package carefully.",
   },
 };
 
@@ -1771,20 +1774,20 @@ export default function Home() {
 
   const redFlags = [
     bankProfile.negativeDays > 5
-      ? "Too many negative days: expect stips, lower approval, or decline pressure."
-      : "Negative-day pattern is workable.",
+      ? "Negative days are the first underwriter cut. Get the newest clean run before pushing size."
+      : "Negative days are not controlling the approval story.",
     bankProfile.nsfs > 3
-      ? "NSF count is high; sell the file around recent clean activity if available."
-      : "NSF count is not the main objection.",
+      ? "High NSF count changes the sale: sell control, not maximum cash."
+      : "NSF count is not the lead objection.",
     existingDailyPayments > underwriting.dailyRevenue * 0.12
-      ? "Existing daily debits are already eating capacity; position payoff or consolidation."
-      : "Existing daily debits leave room for a new payment.",
+      ? "Current remits are already using capacity. Pitch payoff, consolidation, or a smaller step-up."
+      : "Existing daily debits leave room for a clean new remittance.",
     underwriting.balanceCoverage < 1.2
-      ? "Average balance is thin compared with daily revenue; keep payment conservative."
-      : "Average balance gives the underwriter comfort that daily ACH can clear.",
+      ? "Thin balance means the payment needs to feel boring, not impressive."
+      : "Average balance supports a credible daily ACH conversation.",
     lastFundedAmount > 0
-      ? `Last funded deal was ${formatMoney(lastFundedAmount)}; renewal step-up is being capped against that prior approval.`
-      : "Ask what the last funded deal was for; no renewal anchor is entered yet.",
+      ? `Prior deal was ${formatMoney(lastFundedAmount)}. Make this a step-up only if the last capital produced revenue or cleaned up timing.`
+      : "Ask for the last funded amount and what it solved before framing this as fresh money.",
   ];
 
   const approvalUse = amountValue / Math.max(maxAmount, 1);
@@ -1795,10 +1798,10 @@ export default function Home() {
   const paymentCadence = paymentFrequency === "daily" ? "daily" : "weekly";
   const renewalRead =
     lastFundedAmount > 0 && underwriting.renewalCeiling
-      ? `Prior deal anchor: ${formatMoney(lastFundedAmount)}. This model allows up to ${formatMoney(
+      ? `Prior deal anchor: ${formatMoney(lastFundedAmount)}. Current model allows up to ${formatMoney(
           underwriting.renewalCeiling,
-        )} before current deposits and payment room cap the offer.`
-      : "No last funded deal entered yet. Ask what the prior advance funded for so the offer can be framed as a renewal, step-up, or fresh money.";
+        )} before deposits and payment room cap the offer.`
+      : "No prior deal entered. Ask what the last advance funded and whether it created revenue, saved time, or just plugged cash flow.";
   const maxEarlyPayoffMonths = Math.min(5, termMonths);
   const earlyPayoffSchedule = Array.from(
     { length: maxEarlyPayoffMonths },
@@ -1914,54 +1917,54 @@ export default function Home() {
   const rebuttals: Rebuttal[] = [
     {
       objection: "I'm good",
-      intent: "Agree without surrendering the call.",
+      intent: "Agree, then test if there is a real business reason to keep talking.",
       opener:
-        "I hear you. I am not calling because the business sounds desperate.",
-      bridge: `For ${selectedIndustry.name}, the question is whether ${selectedIntelligence.targetMetric} is already where you want it, or whether ${formatMoney(offer.amount)} can pull forward the next revenue move.`,
-      proof: `${capitalPlan[0]?.label ?? "Use of funds"} and ${revenueLevers[0]?.label ?? "the first revenue lever"} are the two places I would look before I ever ask you to take money.`,
+        "I hear you. I am not calling because the business sounds desperate; strong files are usually the ones with the most options.",
+      bridge: `For ${selectedIndustry.name}, I would only stay on this if ${selectedIntelligence.targetMetric} has a clear bottleneck that ${formatMoney(offer.amount)} can pull forward.`,
+      proof: `${capitalPlan[0]?.label ?? "Use of funds"} and ${revenueLevers[0]?.label ?? "the first revenue lever"} are the first two proof points. If neither one is real, I would not force the deal.`,
       close:
-        "If there is no clear place to turn the capital, we should pass. If there is, I can show you the payment and the use case side by side.",
+        "Give me sixty seconds to line up the payment against that use case. If the spread is not there, we shut it down.",
     },
     {
       objection: "I have enough money",
-      intent: "Reframe from need to timing and opportunity cost.",
+      intent: "Move the call from need to optionality and cash protection.",
       opener:
-        "That is usually the strongest type of file. Enough cash means you get to choose timing instead of borrowing from pressure.",
-      bridge: `I would compare the cash you already have against the cost of using outside capital for ${capitalPlan[1]?.label.toLowerCase() ?? "the highest-return use"}.`,
-      proof: `If the move can reasonably create about ${formatMoney(projectedLiftDollars)} in monthly lift, the decision is not 'do you have money'; it is whether keeping your own cash untouched is worth the fixed payback.`,
+        "Perfect. Then this is not a rescue conversation; it is a control conversation.",
+      bridge: `I would compare using your own reserves against using outside capital for ${capitalPlan[1]?.label.toLowerCase() ?? "the highest-return use"} while keeping cash on hand.`,
+      proof: `If that move can reasonably create about ${formatMoney(projectedLiftDollars)} in monthly lift, the decision is not whether you have money. It is whether preserving liquidity is worth the fixed payback.`,
       close:
-        "Let me price the conservative structure first. If the spread does not make sense, you should not use it.",
+        "Let me show the conservative structure first. If the spread is weak, I will tell you not to use it.",
     },
     {
       objection: "My business is self funded",
-      intent: "Respect pride, then position optional capital as control.",
+      intent: "Respect discipline and position capital as a measured tool.",
       opener:
-        "I respect that. Self-funded operators are usually more disciplined because every dollar has already been earned.",
-      bridge: `This would not replace self-funding. It would be a short-term tool only if it protects cash while you execute ${capitalPlan[0]?.label.toLowerCase() ?? "a specific revenue move"}.`,
-      proof: `${selectedIndustry.mirror} That is exactly why I would tie the offer to one measured outcome, not general spending.`,
+        "I respect that. Self-funded owners are usually the easiest people to underwrite because they already respect cash.",
+      bridge: `This should not replace self-funding. It only belongs here if it protects reserves while you execute ${capitalPlan[0]?.label.toLowerCase() ?? "a specific revenue move"}.`,
+      proof: `${selectedIndustry.mirror} That is why I would tie the advance to one measured outcome, not general spending.`,
       close:
-        "Keep the business self-funded as the rule. Use this only if the numbers let you keep reserves and still move faster.",
+        "Keep self-funding as the rule. Use this only if the numbers let you keep reserves and move faster.",
     },
     {
       objection: "The rates are too high",
       intent: "Do not argue. Bring the call back to ROI, speed, and structure.",
       opener:
-        "They can be high, and I would rather be upfront about that than pretend cheap money and fast money are the same thing.",
-      bridge: `The right comparison is the fixed payback of ${offer.factor.toFixed(2)} against the revenue you can create or protect through ${revenueLevers[0]?.label.toLowerCase() ?? "the main revenue lever"}.`,
-      proof: `At this structure, estimated monthly ACH drag is ${formatMoney(monthlyAchEstimate)}. The model target is ${formatMoney(projectedLiftDollars)} in monthly lift, so we should only keep talking if that spread feels believable for your operation.`,
+        "You are right to watch cost. Fast capital is not cheap capital, and I would rather be direct about that.",
+      bridge: `The right comparison is the fixed factor of ${offer.factor.toFixed(2)} against the revenue you can create or protect through ${revenueLevers[0]?.label.toLowerCase() ?? "the main revenue lever"}.`,
+      proof: `At this structure, estimated monthly remittance is ${formatMoney(monthlyAchEstimate)}. The model target is ${formatMoney(projectedLiftDollars)} in monthly lift, so we should only keep talking if that spread feels believable for your operation.`,
       close:
-        "If you want cheapest money, this may not be the product. If you want speed tied to a specific return, then we can size it responsibly.",
+        "If cheapest capital is the goal, this may not be the product. If speed tied to a specific return is the goal, we size it responsibly.",
     },
     {
       objection: "The interest is too high",
       intent: "Clarify without sounding corrective or evasive.",
       opener:
-        "I get what you mean on cost. Small correction: on this type of advance, we are not quoting compounding interest like a term loan.",
-      bridge: `We are looking at a fixed payback/factor on the advance. For example, ${formatMoney(offer.amount)} at ${offer.factor.toFixed(2)} means the payback is known upfront: ${formatMoney(offer.payback)}.`,
+        "I understand what you mean on cost. Quick clarification: this is quoted as a fixed factor rate, not compounding loan interest.",
+      bridge: `For example, ${formatMoney(offer.amount)} at ${offer.factor.toFixed(2)} means the fixed payback is known upfront: ${formatMoney(offer.payback)}.`,
       proof:
-        "That does not automatically make it cheap. It just means we judge it differently: fixed cost, speed, payment fit, and whether the use of funds can outperform it.",
+        "That does not automatically make it cheap. It means we judge it by fixed cost, speed, payment fit, and whether the use of funds can outperform the payback.",
       close:
-        "So I would not sell it as low-interest money. I would sell it only if the fixed cost is justified by the timing and the revenue plan.",
+        "So I would not sell it as low-cost money. I would sell it only if the timing and revenue plan justify the fixed payback.",
     },
   ];
   const activeRebuttal =
@@ -1973,20 +1976,20 @@ export default function Home() {
           label: "Press for signature",
           tone: "green",
           detail:
-            "Payment room and score support a confident close. Lead with speed, then protect the approval from over-shopping.",
+            "The file has room. Lead with certainty, collect the clean docs, and keep the merchant from shopping the approval to death.",
         }
       : paymentUtilization <= 0.95
         ? {
             label: "Sell the structure",
             tone: "amber",
             detail:
-              "The file works, but the payment needs context. Anchor the cash use and keep the fallback ready.",
+              "The deal works only when the use case is clear. Anchor the money to the outcome before defending price.",
           }
         : {
             label: "Resize before submit",
             tone: "red",
             detail:
-              "The ask is outrunning payment room. Downshift the amount, lengthen term, or make payoff part of the story.",
+              "The ask is outrunning capacity. Downshift the amount, extend term, or make payoff part of the story before submit.",
           };
   const firstAsk = Math.min(maxAmount, Math.round((offer.amount * 1.08) / 1000) * 1000);
   const hasRoomAboveOffer = firstAsk > offer.amount;
@@ -2036,10 +2039,10 @@ export default function Home() {
   ];
   const dealSurfaceRead =
     paymentUtilization <= 0.78
-      ? "Strong structure. The payment plane is below the capacity line, so lead with fit and speed."
+      ? "Strong structure. Payment sits below capacity, so sell fit, speed, and a tight document path."
       : paymentUtilization <= 1
-        ? "Workable structure. Keep the use of funds tight and keep the fallback ready."
-        : "Pressure structure. The offer is above payment room; resize, stretch term, or make payoff part of the story.";
+        ? "Workable structure. The close depends on a sharp use of funds and a fallback ready in your pocket."
+        : "Pressure structure. The payment is above room; resize before the merchant anchors on a number underwriting will not like.";
   const primaryAllocation = capitalPlan[0];
   const primaryLever = revenueLevers[0];
   const liftCoverage = projectedLiftDollars / Math.max(monthlyAchEstimate, 1);
@@ -2055,8 +2058,8 @@ export default function Home() {
         : "Payment eats lift";
   const conversionRead =
     netAfterDailyPayment >= 0
-      ? `${formatMoney(projectedLiftDollars)} modeled monthly lift covers ${formatMoney(monthlyAchEstimate)} estimated ACH drag, leaving ${formatMoney(netAfterDailyPayment)} of room.`
-      : `${formatMoney(monthlyAchEstimate)} estimated ACH drag is above the modeled ${formatMoney(projectedLiftDollars)} lift. Resize before making this the main pitch.`;
+      ? `${formatMoney(projectedLiftDollars)} modeled monthly lift covers ${formatMoney(monthlyAchEstimate)} estimated remittance, leaving ${formatMoney(netAfterDailyPayment)} of room.`
+      : `${formatMoney(monthlyAchEstimate)} estimated remittance is above the modeled ${formatMoney(projectedLiftDollars)} lift. Resize before making this the main pitch.`;
   const conversionNodes: ConversionNode[] = [
     {
       label: "Advance",
@@ -2084,7 +2087,7 @@ export default function Home() {
       tone: "cash",
     },
     {
-      label: "ACH drag",
+      label: "Remittance",
       value: formatMoney(monthlyAchEstimate),
       detail: `${formatPercent(clamp(monthlyAchEstimate / Math.max(projectedLiftDollars, 1), 0, 1))} of lift target`,
       weight: clamp(monthlyAchEstimate / Math.max(projectedLiftDollars, 1), 0.18, 1),
@@ -2096,7 +2099,7 @@ export default function Home() {
       detail:
         netAfterDailyPayment >= 0
           ? "Room after modeled payment"
-          : "Shortfall against payment drag",
+          : "Shortfall after remittance",
       weight: netSpreadWeight,
       tone: netAfterDailyPayment >= 0 ? "cash" : "risk",
     },
@@ -2112,10 +2115,10 @@ export default function Home() {
             : "Resize first",
       detail:
         paymentUtilization <= 0.78
-          ? "Lead with approval confidence, then ask for statements and signature path."
+          ? "Lead with approval confidence, confirm the use of funds, then ask for statements and signature path."
           : paymentUtilization <= 1
-            ? "Anchor the funds to the strongest use case before discussing cost."
-            : "Lower the amount or extend term before the merchant anchors on a payment they will reject.",
+            ? "Anchor funds to the strongest use case before discussing factor or concessions."
+            : "Lower the amount or extend term before the merchant hears a payment they will reject.",
     },
     {
       label: "Doc priority",
@@ -2127,16 +2130,16 @@ export default function Home() {
             : "Recent banks",
       detail:
         lastFundedAmount > 0
-          ? "Use the last funding agreement to verify position, payback, and renewal room."
-          : "Get the freshest deposit picture before quoting a stronger number.",
+          ? "Verify balance, position, payback, and whether there is real renewal room."
+          : "Get the freshest deposit picture before quoting a stronger approval.",
     },
     {
-      label: "Price position",
+      label: "Factor position",
       value: offer.factor <= 1.24 ? "Hold factor" : "Guard spread",
       detail:
         offer.factor <= 1.24
-          ? "Do not discount early; the live structure is already close to the floor."
-          : "Use cost only after payment fit and use of funds are clear.",
+          ? "Hold price early. The structure is already close enough to defend."
+          : "Do not talk cost first. Establish payment fit and use of funds before concessions.",
     },
   ];
   const submissionRadar = [
@@ -2150,10 +2153,10 @@ export default function Home() {
             : "Fresh statements",
       detail:
         lastFundedAmount > 0
-          ? "Verify current balance, remittance, and whether the new money is a true step-up or a refinance story."
+          ? "Verify current balance, remittance, payoff language, and whether this is a true step-up or a refinance story."
           : bankHealth === "stressed"
-            ? "Do not let old statements carry the file. Get the newest clean deposit run before quoting higher."
-            : "Use live deposits to protect the approval and avoid re-trading after underwriting sees the file.",
+            ? "Old statements will not save the file. Get the newest clean deposit run before quoting higher."
+            : "Live deposits protect the approval and reduce re-trading after underwriting reviews the file.",
     },
     {
       label: "Ask on call",
@@ -2163,16 +2166,16 @@ export default function Home() {
           : "What would this capital unlock?",
       detail:
         lastFundedAmount > 0
-          ? "If the last deal created revenue, frame this as repeatable momentum. If it only plugged cash flow, resize tighter."
+          ? "If the last deal created revenue, frame this as repeatable momentum. If it only covered pressure, resize tighter."
           : `Tie the answer to ${capitalPlan[0]?.label.toLowerCase() ?? "one use of funds"} so the deal has a reason beyond cash on hand.`,
     },
     {
       label: "Do not lead with",
-      value: offer.factor <= 1.24 ? "Rate discounting" : "Max cash",
+      value: offer.factor <= 1.24 ? "Factor cuts" : "Max cash",
       detail:
         offer.factor <= 1.24
-          ? "The structure is already close enough to defend. Sell speed, fit, and use case before giving up price."
-          : "The number needs context first. Lead with payment fit and revenue use before pushing the largest approval.",
+          ? "Sell speed, fit, and use case before giving up price."
+          : "Lead with payment fit and revenue use before pushing the largest approval.",
     },
   ];
   const brokerPackage = [
@@ -2180,8 +2183,8 @@ export default function Home() {
       label: "First ask",
       value: formatMoney(firstAsk),
       detail: hasRoomAboveOffer
-        ? `Anchor above the live offer so ${formatMoney(amountValue)} feels earned, not discounted.`
-        : "Hold the top-line approval; any concession should come from term, payoff, or conditions.",
+        ? `Anchor above the live offer so ${formatMoney(amountValue)} feels earned, not handed over.`
+        : "Hold the top-line approval. Any concession should come from term, payoff, or conditions.",
     },
     {
       label: "Fallback",
@@ -2189,7 +2192,7 @@ export default function Home() {
       detail: `Use this if the merchant flinches at the ${paymentCadence} payment.`,
     },
     {
-      label: "Price guardrail",
+      label: "Factor floor",
       value: fallbackFactor.toFixed(2),
       detail: "Do not drop below this without better banks, payoff leverage, or cleaner stips.",
     },
@@ -2204,7 +2207,7 @@ export default function Home() {
       detail:
         bankHealth === "stressed"
           ? "Ask for the most recent clean days before packaging the file."
-          : "Keep the document ask narrow so the call stays moving.",
+          : "Keep the document ask narrow so the call keeps moving.",
     },
   ];
   const liveCallLenses: {
@@ -2223,11 +2226,11 @@ export default function Home() {
       id: "close",
       label: "Close",
       value: dealActions[0]?.value ?? "Next move",
-      cue: activeRebuttal.objection,
+      cue: `Handle: ${activeRebuttal.objection}`,
     },
     {
       id: "growth",
-      label: "Growth",
+      label: "Spread",
       value: formatMoney(netAfterDailyPayment),
       cue: conversionStatus,
     },
@@ -2240,9 +2243,9 @@ export default function Home() {
   ];
   const liveCallCue =
     activeLens === "offer"
-      ? `Quote ${formatMoney(amountValue)} around ${formatMoney(
+      ? `Lead with ${formatMoney(amountValue)} at ${formatMoney(
           offer.paymentAmount,
-        )} ${paymentCadence}; tune only if the payment becomes the objection.`
+        )} ${paymentCadence}. If they push back, move to use case and term before touching factor.`
       : activeLens === "close"
         ? dealActions[0]?.detail
         : activeLens === "growth"
@@ -2460,18 +2463,18 @@ export default function Home() {
       <section className="market-tape" aria-label="Workflow">
         <span>Desk</span>
         <span>Structure</span>
-        <span>Risk</span>
+        <span>Package</span>
         <span>Close</span>
       </section>
 
       <section className="summary-grid" aria-label="Deal snapshot">
         <div className="snapshot-card offer-card">
-          <span>Primary offer</span>
+          <span>Working offer</span>
           <strong>{formatMoney(amountValue)}</strong>
-          <small>Max approval · {underwriting.tier}</small>
+          <small>Modeled max · {underwriting.tier}</small>
         </div>
         <div className="snapshot-card payment-card">
-          <span>Payment load</span>
+          <span>Remittance</span>
           <strong>{formatMoney(offer.paymentAmount)}</strong>
           <small>{formatPercent(paymentUtilization)} of payment room</small>
         </div>
@@ -2481,9 +2484,9 @@ export default function Home() {
           <small>{termMonths} months · {offer.termDays} ACH days</small>
         </div>
         <div className="snapshot-card pricing-card">
-          <span>Price</span>
+          <span>Factor</span>
           <strong>{offer.factor.toFixed(2)}</strong>
-          <small>{payoffPerDollar.toFixed(2)} payback per $1</small>
+          <small>{payoffPerDollar.toFixed(2)} fixed payback per $1</small>
         </div>
       </section>
 
@@ -2633,7 +2636,7 @@ export default function Home() {
             <div className="offer-focus">
               <span>Offer</span>
               <strong>{formatMoney(amountValue)}</strong>
-              <small>Live working figure; adjust for payment room before submit.</small>
+              <small>Working figure; adjust for payment room before submit.</small>
             </div>
             <div className="payment-focus">
               <span>{paymentLabel}</span>
@@ -2740,8 +2743,8 @@ export default function Home() {
           <div className="merchant-surface-card" aria-label="3D merchant deal analytics">
             <div className="surface-header">
               <div>
-                <span>Merchant analytics</span>
-                <h3>3D deal surface</h3>
+              <span>Merchant analytics</span>
+                <h3>Deal surface</h3>
               </div>
               <strong>{brokerPosture.label}</strong>
             </div>
@@ -2787,7 +2790,7 @@ export default function Home() {
             <div className="conversion-header">
               <div>
                 <span>Capital conversion</span>
-                <h3>Use of funds to payment spread</h3>
+                <h3>Use of funds vs payback</h3>
               </div>
               <strong>{conversionStatus}</strong>
             </div>
@@ -2865,7 +2868,7 @@ export default function Home() {
           <div className={`broker-package ${brokerPosture.tone}`}>
             <div className="broker-package-header">
               <div>
-                <span>Broker package</span>
+              <span>Broker package</span>
                 <h3>{brokerPosture.label}</h3>
               </div>
               <strong>{formatPercent(paymentUtilization)}</strong>
@@ -2886,7 +2889,7 @@ export default function Home() {
         <div className="panel read-panel section-amber">
           <div className="panel-heading">
             <span>Risk read</span>
-            <h2>Underwriter notes</h2>
+            <h2>File notes</h2>
           </div>
           <ul className="signal-list">
             {redFlags.map((flag) => (
@@ -2896,11 +2899,12 @@ export default function Home() {
           <div className="talk-track">
             <span>Phone line</span>
             <p>
-              “I would not just quote this as ‘how much is 100K.’ Based on the
-              deposits and balance, I’d frame <b>{formatMoney(amountValue)}</b>{" "}
-              around <b>{formatMoney(offer.paymentAmount)}</b> {paymentCadence}. If that
-              payment feels tight, we tune the term now before underwriting
-              cuts it for us.”
+              “I would not sell this as ‘how much cash can you get.’ I would
+              sell it as <b>{formatMoney(amountValue)}</b> with a fixed payback of{" "}
+              <b>{formatMoney(offer.payback)}</b> and a{" "}
+              <b>{formatMoney(offer.paymentAmount)}</b> {paymentCadence} remittance.
+              If that payment does not fit the business, we tune the structure
+              before underwriting does it for us.”
             </p>
           </div>
         </div>
@@ -2910,8 +2914,8 @@ export default function Home() {
         <div className="panel industry-panel section-purple strategy-workstation">
           <div className="panel-heading horizontal">
             <div>
-              <span>Closing strategy</span>
-              <h2>Industry angle</h2>
+              <span>Close plan</span>
+              <h2>Industry playbook</h2>
             </div>
             <div className="industry-tools">
               <label className="industry-search">
@@ -2976,7 +2980,7 @@ export default function Home() {
                 <strong>{formatMoney(projectedLiftDollars)}</strong>
                 <p>
                   Estimated monthly revenue target from the selected industry
-                  model, not a guaranteed outcome.
+                  model. Use it as a selling frame, not a guaranteed outcome.
                 </p>
               </div>
             </div>
@@ -2987,7 +2991,7 @@ export default function Home() {
               <div className="allocation-card">
                 <div className="allocation-header">
                   <div>
-                    <span>Use of funds model</span>
+                    <span>Use of funds</span>
                     <h3>{formatMoney(offer.amount)} working allocation</h3>
                   </div>
                   <strong>{selectedIndustry.name}</strong>
@@ -3003,13 +3007,13 @@ export default function Home() {
                         <i style={{ width: `${Math.round(item.percent * 100)}%` }} />
                       </div>
                       <p>{item.detail}</p>
-                      <small>Verify: {item.proof}</small>
+                      <small>Proof: {item.proof}</small>
                     </article>
                   ))}
                 </div>
               </div>
               <div className="strategy-note">
-                <span>Close angle</span>
+                <span>Use on call</span>
                 <ul>
                   {selectedIndustry.uses.map((use) => (
                     <li key={use}>{use}</li>
@@ -3066,7 +3070,7 @@ export default function Home() {
                     <strong>{formatMoney(projectedLiftDollars)}</strong>
                   </div>
                   <div>
-                    <span>Est. monthly ACH drag</span>
+                    <span>Est. monthly remittance</span>
                     <strong>{formatMoney(monthlyAchEstimate)}</strong>
                   </div>
                   <div className={netAfterDailyPayment >= 0 ? "good" : "bad"}>
@@ -3076,7 +3080,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="strategy-note">
-                <span>Revenue discipline</span>
+                <span>Revenue guardrails</span>
                 <ul>
                   {selectedIndustry.revenueMoves.map((move) => (
                     <li key={move}>{move}</li>
@@ -3090,7 +3094,7 @@ export default function Home() {
             <div className="rebuttal-topline">
               <div>
                 <span>Objection handling</span>
-                <h3>{selectedIndustry.name} rebuttal deck</h3>
+                <h3>{selectedIndustry.name} close deck</h3>
               </div>
               <div className="rebuttal-controls">
                 <button
@@ -3154,7 +3158,7 @@ export default function Home() {
                   <p>{activeRebuttal.opener}</p>
                 </div>
                 <div>
-                  <span>Bridge to this industry</span>
+                  <span>Industry bridge</span>
                   <p>{activeRebuttal.bridge}</p>
                 </div>
                 <div>
