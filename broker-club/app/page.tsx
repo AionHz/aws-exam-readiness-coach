@@ -1541,6 +1541,25 @@ function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
+function getOfferFactor(
+  amount: number,
+  maxApproval: number,
+  termMonths: number,
+  underwritingScore: number,
+) {
+  const amountPressure = amount / Math.max(maxApproval, 1);
+  const termPressure = (termMonths - 12) / 24;
+  const scoreDiscount = clamp((underwritingScore - 70) / 260, -0.05, 0.05);
+
+  return Number(
+    clamp(
+      1.18 + amountPressure * 0.09 + termPressure * 0.1 - scoreDiscount,
+      1.1,
+      1.49,
+    ).toFixed(2),
+  );
+}
+
 function updateNumberInput(
   value: string,
   setDisplayValue: (value: string) => void,
@@ -1712,14 +1731,12 @@ export default function Home() {
 
   const offer = useMemo(() => {
     const amount = clamp(amountValue, 5000, maxAmount);
-    const amountPressure = amount / Math.max(underwriting.maxApproval, 1);
-    const termPressure = (termMonths - 12) / 24;
-    const scoreDiscount = clamp((underwriting.score - 70) / 260, -0.05, 0.05);
-    const factor = Number(clamp(
-      1.18 + amountPressure * 0.09 + termPressure * 0.1 - scoreDiscount,
-      1.1,
-      1.49,
-    ).toFixed(2));
+    const factor = getOfferFactor(
+      amount,
+      underwriting.maxApproval,
+      termMonths,
+      underwriting.score,
+    );
     const payback = amount * factor;
     const termDays = Math.round(termMonths * 21.5);
     const dailyPayment = payback / termDays;
@@ -1787,7 +1804,7 @@ export default function Home() {
     { length: maxEarlyPayoffMonths },
     (_, index) => {
       const month = index + 1;
-      const discountRate = [0.18, 0.14, 0.1, 0.07, 0.05][index];
+      const discountRate = [0.18, 0.17, 0.16, 0.15, 0.14][index];
       const collectedToDate =
         paymentFrequency === "daily"
           ? offer.dailyPayment * 21.5 * month
@@ -1827,7 +1844,28 @@ export default function Home() {
       term: 9,
       note: "Use when merchant pushes for max cash.",
     },
-  ];
+  ].map((mode) => {
+    const modeAmount = Math.max(5000, Math.round(mode.amount / 1000) * 1000);
+    const modeFactor = getOfferFactor(
+      modeAmount,
+      underwriting.maxApproval,
+      mode.term,
+      underwriting.score,
+    );
+    const modePayback = modeAmount * modeFactor;
+    const modeDailyPayment = modePayback / (mode.term * 21.5);
+    const modeWeeklyPayment = modePayback / (mode.term * 4.3);
+    const modePayment =
+      paymentFrequency === "daily" ? modeDailyPayment : modeWeeklyPayment;
+
+    return {
+      ...mode,
+      amount: modeAmount,
+      factor: modeFactor,
+      payback: modePayback,
+      payment: modePayment,
+    };
+  });
   const growthLift = selectedIndustry.lift;
   const growthProjection = [
     { label: "Now", value: monthlyRevenue },
@@ -2232,6 +2270,14 @@ export default function Home() {
       value: formatMoney(offer.payback),
     },
   ];
+  const termFormula =
+    paymentFrequency === "daily"
+      ? `${formatMoney(offer.payback)} / ${offer.termDays} ACH days = ${formatMoney(
+          offer.dailyPayment,
+        )} daily`
+      : `${formatMoney(offer.payback)} / ${(termMonths * 4.3).toFixed(
+          1,
+        )} weeks = ${formatMoney(offer.weeklyPayment)} weekly`;
 
   return (
     <main className={`app-shell live-call-shell lens-${activeLens}`}>
@@ -2656,6 +2702,41 @@ export default function Home() {
             ))}
           </div>
 
+          <div className="term-equation" aria-label="Offer formula">
+            <span>
+              {formatMoney(offer.amount)} x {offer.factor.toFixed(2)} ={" "}
+              {formatMoney(offer.payback)}
+            </span>
+            <b>{termFormula}</b>
+          </div>
+
+          <div className="scenario-grid offer-options" aria-label="Offer options">
+            {offerModes.map((mode) => (
+              <button
+                type="button"
+                key={mode.label}
+                className={
+                  amountValue === mode.amount && termMonths === mode.term
+                    ? "is-selected"
+                    : ""
+                }
+                onClick={() => {
+                  updateMaxAwareAmount(mode.amount);
+                  setTermMonths(mode.term);
+                }}
+              >
+                <b>{mode.label}</b>
+                <span>{formatMoney(mode.amount)}</span>
+                <small>
+                  {mode.factor.toFixed(2)} factor · {mode.term} mo
+                </small>
+                <em>
+                  {formatMoney(mode.payment)} {paymentCadence}
+                </em>
+              </button>
+            ))}
+          </div>
+
           <div className="merchant-surface-card" aria-label="3D merchant deal analytics">
             <div className="surface-header">
               <div>
@@ -2779,23 +2860,6 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="scenario-grid">
-            {offerModes.map((mode) => (
-              <button
-                type="button"
-                key={mode.label}
-                onClick={() => {
-                  updateMaxAwareAmount(Math.round(mode.amount / 1000) * 1000);
-                  setTermMonths(mode.term);
-                }}
-              >
-                <b>{mode.label}</b>
-                <span>{formatMoney(mode.amount)}</span>
-                <small>{mode.term} mo</small>
-              </button>
-            ))}
           </div>
 
           <div className={`broker-package ${brokerPosture.tone}`}>

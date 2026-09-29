@@ -10439,6 +10439,80 @@ select:focus {
   font-variant-numeric: tabular-nums;
 }
 
+.term-equation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(216, 184, 110, 0.18);
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, rgba(216, 184, 110, 0.11), rgba(89, 242, 164, 0.06)),
+    rgba(255, 255, 255, 0.035);
+}
+
+.term-equation span,
+.term-equation b {
+  color: rgba(248, 243, 233, 0.86);
+  font-size: 0.92rem;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.term-equation b {
+  color: #fff;
+  text-align: right;
+}
+
+.live-call-shell.lens-offer .offer-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+
+.live-call-shell.lens-offer .offer-options button {
+  min-height: 124px !important;
+  padding: 14px !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.068), rgba(255, 255, 255, 0.018)),
+    rgba(12, 14, 18, 0.72) !important;
+}
+
+.live-call-shell.lens-offer .offer-options button.is-selected {
+  border-color: rgba(89, 242, 164, 0.5) !important;
+  background:
+    linear-gradient(145deg, rgba(89, 242, 164, 0.16), rgba(216, 184, 110, 0.08)),
+    rgba(8, 15, 13, 0.82) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 28px rgba(89, 242, 164, 0.12) !important;
+}
+
+.live-call-shell.lens-offer .offer-options button b,
+.live-call-shell.lens-offer .offer-options button span,
+.live-call-shell.lens-offer .offer-options button small,
+.live-call-shell.lens-offer .offer-options button em {
+  display: block;
+}
+
+.live-call-shell.lens-offer .offer-options button span {
+  margin: 7px 0 5px;
+  color: #fff;
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.live-call-shell.lens-offer .offer-options button em {
+  margin-top: 8px;
+  color: var(--green);
+  font-style: normal;
+  font-weight: 900;
+}
+
 .lens-close .offer-math-grid,
 .lens-growth .offer-math-grid,
 .lens-risk .offer-math-grid {
@@ -10448,6 +10522,12 @@ select:focus {
 .live-call-shell.lens-offer .payoff-card {
   display: block !important;
   margin-top: 10px;
+}
+
+.live-call-shell.lens-offer .payoff-card {
+  background:
+    linear-gradient(145deg, rgba(216, 184, 110, 0.095), rgba(255, 255, 255, 0.018)),
+    rgba(16, 18, 23, 0.72) !important;
 }
 
 .live-call-shell.lens-offer .payoff-grid {
@@ -10480,6 +10560,19 @@ select:focus {
 
   .offer-math-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .term-equation {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .term-equation b {
+    text-align: left;
+  }
+
+  .live-call-shell.lens-offer .offer-options {
+    grid-template-columns: 1fr !important;
   }
 
   .live-call-shell.lens-offer .payoff-grid {
