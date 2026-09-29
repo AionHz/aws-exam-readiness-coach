@@ -1715,11 +1715,11 @@ export default function Home() {
     const amountPressure = amount / Math.max(underwriting.maxApproval, 1);
     const termPressure = (termMonths - 12) / 24;
     const scoreDiscount = clamp((underwriting.score - 70) / 260, -0.05, 0.05);
-    const factor = clamp(
+    const factor = Number(clamp(
       1.18 + amountPressure * 0.09 + termPressure * 0.1 - scoreDiscount,
       1.1,
       1.49,
-    );
+    ).toFixed(2));
     const payback = amount * factor;
     const termDays = Math.round(termMonths * 21.5);
     const dailyPayment = payback / termDays;
@@ -1796,13 +1796,15 @@ export default function Home() {
       const discountedBalance = remainingBalance * (1 - discountRate);
       const principalFloor = Math.max(0, offer.amount - collectedToDate);
       const payoffQuote = Math.max(discountedBalance, principalFloor);
+      const savings = Math.max(0, remainingBalance - payoffQuote);
 
       return {
         discountRate,
         month,
         label: `${month} ${month === 1 ? "month" : "months"}`,
         payoffQuote,
-        savings: remainingBalance - payoffQuote,
+        remainingBalance,
+        savings,
       };
     },
   );
@@ -2207,7 +2209,29 @@ export default function Home() {
         ? dealActions[0]?.detail
         : activeLens === "growth"
           ? conversionRead
-          : redFlags.find((flag) => flag.includes("Ask what")) ?? redFlags[0];
+        : redFlags.find((flag) => flag.includes("Ask what")) ?? redFlags[0];
+  const offerMathCards = [
+    {
+      label: "Offer",
+      value: formatMoney(offer.amount),
+    },
+    {
+      label: "Factor",
+      value: offer.factor.toFixed(2),
+    },
+    {
+      label: "Term",
+      value: `${termMonths} mo`,
+    },
+    {
+      label: paymentFrequency === "daily" ? "Daily payment" : "Weekly payment",
+      value: formatMoney(offer.paymentAmount),
+    },
+    {
+      label: "Payback",
+      value: formatMoney(offer.payback),
+    },
+  ];
 
   return (
     <main className={`app-shell live-call-shell lens-${activeLens}`}>
@@ -2215,80 +2239,62 @@ export default function Home() {
         .live-call-shell .topbar .market-stamp.live-status-badge {
           isolation: isolate !important;
           position: relative !important;
-          display: grid !important;
-          place-items: center !important;
-          width: min(100%, 216px) !important;
-          min-height: 78px !important;
-          padding: 18px 22px !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 12px !important;
+          width: auto !important;
+          min-width: 178px !important;
+          min-height: 54px !important;
+          padding: 0 22px !important;
           overflow: hidden !important;
           transform: none !important;
           transform-style: flat !important;
-          border: 1px solid rgba(92, 225, 143, 0.34) !important;
-          border-radius: 16px !important;
+          border: 1px solid rgba(92, 225, 143, 0.24) !important;
+          border-radius: 999px !important;
           background:
-            radial-gradient(circle at 22% 50%, rgba(92, 225, 143, 0.14), transparent 34%),
-            linear-gradient(145deg, rgba(6, 12, 20, 0.96), rgba(10, 26, 28, 0.94)) !important;
+            linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.02)),
+            rgba(5, 12, 11, 0.72) !important;
           box-shadow:
-            0 16px 32px rgba(0, 0, 0, 0.28),
-            0 0 0 1px rgba(216, 188, 122, 0.08),
-            0 0 28px rgba(92, 225, 143, 0.16),
-            inset 0 1px 0 rgba(255, 255, 255, 0.07),
-            inset 0 -1px 0 rgba(92, 225, 143, 0.18) !important;
-          text-align: center !important;
-          animation: broker-live-badge 3.4s ease-in-out infinite !important;
+            0 14px 34px rgba(0, 0, 0, 0.25),
+            0 0 26px rgba(92, 225, 143, 0.11),
+            inset 0 1px 0 rgba(255, 255, 255, 0.11) !important;
+          text-align: left !important;
+          animation: broker-live-badge 4.8s ease-in-out infinite !important;
         }
 
         .live-call-shell .topbar .market-stamp.live-status-badge::before {
           content: "" !important;
           position: absolute !important;
-          inset: 7px !important;
+          inset: 1px !important;
           z-index: 0 !important;
-          width: auto !important;
-          height: auto !important;
-          border: 1px solid rgba(255, 255, 255, 0.08) !important;
-          border-radius: 11px !important;
-          background:
-            linear-gradient(90deg, rgba(92, 225, 143, 0.16), transparent 38%, rgba(216, 188, 122, 0.12)),
-            repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 18px) !important;
-          opacity: 1 !important;
-          filter: none !important;
-          transform: none !important;
-          pointer-events: none;
+          border-radius: inherit !important;
+          background: linear-gradient(90deg, transparent, rgba(92, 225, 143, 0.12), transparent) !important;
+          opacity: 0.72 !important;
+          pointer-events: none !important;
         }
 
         .live-call-shell .topbar .market-stamp.live-status-badge::after {
-          content: "" !important;
-          position: absolute !important;
-          inset: -25% auto -25% -45% !important;
-          z-index: 1 !important;
-          width: 42% !important;
-          height: 150% !important;
-          border: 0 !important;
-          border-radius: 0 !important;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent) !important;
-          filter: none !important;
-          transform: skewX(-18deg) !important;
-          animation: broker-live-sweep 3.2s ease-in-out infinite !important;
-          pointer-events: none;
+          display: none !important;
         }
 
         .live-call-shell .topbar .market-stamp.live-status-badge .offer-orbit {
-          position: absolute !important;
-          left: 20px !important;
-          top: 50% !important;
-          right: auto !important;
+          position: relative !important;
+          left: auto !important;
+          top: auto !important;
           z-index: 3 !important;
-          width: 10px !important;
-          height: 10px !important;
+          flex: 0 0 auto !important;
+          width: 9px !important;
+          height: 9px !important;
           border: 0 !important;
           border-radius: 50% !important;
-          background: #ff4d4f !important;
+          background: #ff4f57 !important;
           box-shadow:
-            0 0 0 6px rgba(255, 77, 79, 0.12),
-            0 0 18px rgba(255, 77, 79, 0.85) !important;
+            0 0 0 5px rgba(255, 79, 87, 0.12),
+            0 0 16px rgba(255, 79, 87, 0.7) !important;
           opacity: 1 !important;
-          transform: translateY(-50%) !important;
-          animation: broker-red-dot 1.6s ease-in-out infinite !important;
+          transform: none !important;
+          animation: broker-red-dot 1.9s ease-in-out infinite !important;
           pointer-events: none;
         }
 
@@ -2298,18 +2304,7 @@ export default function Home() {
         }
 
         .live-call-shell .topbar .market-stamp.live-status-badge .offer-depth {
-          position: absolute !important;
-          left: 48px !important;
-          right: 22px !important;
-          bottom: 15px !important;
-          z-index: 2 !important;
-          height: 2px !important;
-          border: 0 !important;
-          border-radius: 999px !important;
-          background: linear-gradient(90deg, transparent, rgba(92, 225, 143, 0.92), transparent) !important;
-          box-shadow: 0 0 14px rgba(92, 225, 143, 0.42) !important;
-          transform: none !important;
-          animation: broker-live-line 2.2s ease-in-out infinite !important;
+          display: none !important;
         }
 
         .live-call-shell .topbar .market-stamp.live-status-badge span,
@@ -2324,11 +2319,11 @@ export default function Home() {
           z-index: 4 !important;
           display: block !important;
           color: #5ce18f !important;
-          font-size: clamp(0.95rem, 1.02vw, 1.1rem) !important;
+          font-size: clamp(0.82rem, 0.9vw, 0.96rem) !important;
           font-weight: 950 !important;
-          letter-spacing: 0.16em !important;
+          letter-spacing: 0.12em !important;
           line-height: 1 !important;
-          text-align: center !important;
+          text-align: left !important;
           text-transform: uppercase !important;
           text-shadow:
             0 0 12px rgba(92, 225, 143, 0.45),
@@ -2344,8 +2339,8 @@ export default function Home() {
         }
 
         @keyframes broker-live-badge {
-          0%, 100% { filter: saturate(1); }
-          50% { filter: saturate(1.14); }
+          0%, 100% { box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25), 0 0 22px rgba(92, 225, 143, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.11); }
+          50% { box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25), 0 0 34px rgba(92, 225, 143, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.11); }
         }
 
         @keyframes broker-live-sweep {
@@ -2355,8 +2350,8 @@ export default function Home() {
         }
 
         @keyframes broker-red-dot {
-          0%, 100% { transform: translateY(-50%) scale(0.88); opacity: 0.78; }
-          50% { transform: translateY(-50%) scale(1.08); opacity: 1; }
+          0%, 100% { transform: scale(0.9); opacity: 0.72; }
+          50% { transform: scale(1.08); opacity: 1; }
         }
 
         @keyframes broker-live-line {
@@ -2366,8 +2361,8 @@ export default function Home() {
 
         @media (max-width: 780px) {
           .live-call-shell .topbar .market-stamp.live-status-badge {
-            width: min(100%, 216px) !important;
-            min-height: 78px !important;
+            width: auto !important;
+            min-height: 52px !important;
           }
         }
       `}</style>
@@ -2652,59 +2647,13 @@ export default function Home() {
             </label>
           </div>
 
-          <div className="underwriting-strip">
-            <div>
-              <span>Rev/day</span>
-              <b>{formatMoney(underwriting.dailyRevenue)}</b>
-            </div>
-            <div>
-              <span>Room</span>
-              <b>{formatMoney(offer.paymentCapacity)}</b>
-            </div>
-            <div>
-              <span>Coverage</span>
-              <b>{underwriting.balanceCoverage.toFixed(1)}x</b>
-            </div>
-            <div>
-              <span>Prior</span>
-              <b>
-                {lastFundedAmount > 0
-                  ? formatMoney(lastFundedAmount)
-                  : "Not entered"}
-              </b>
-            </div>
-          </div>
-
-          <div className="numbers-grid">
-            <div>
-              <span>Payback</span>
-              <strong>{formatMoney(offer.payback)}</strong>
-            </div>
-            <div>
-              <span>Daily</span>
-              <strong>{formatMoney(offer.dailyPayment)}</strong>
-            </div>
-            <div>
-              <span>Weekly</span>
-              <strong>{formatMoney(offer.weeklyPayment)}</strong>
-            </div>
-            <div>
-              <span>Factor</span>
-              <strong>{offer.factor.toFixed(2)}</strong>
-            </div>
-          </div>
-
-          <div
-            className={
-              offer.marginToCapacity >= 0 ? "capacity good" : "capacity bad"
-            }
-          >
-            <b>{offer.marginToCapacity >= 0 ? "Fits" : "Pressure"}</b>
-            <span>
-              {offer.marginToCapacity >= 0
-                ? `+${formatMoney(offer.marginToCapacity)} room`
-                : `${formatMoney(Math.abs(offer.marginToCapacity))} over room`}
-            </span>
+          <div className="offer-math-grid" aria-label="Offer terms">
+            {offerMathCards.map((card) => (
+              <div key={card.label}>
+                <span>{card.label}</span>
+                <strong>{card.value}</strong>
+              </div>
+            ))}
           </div>
 
           <div className="merchant-surface-card" aria-label="3D merchant deal analytics">
@@ -2824,7 +2773,7 @@ export default function Home() {
                   <span>{payoff.label}</span>
                   <strong>{formatMoney(payoff.payoffQuote)}</strong>
                   <small>
-                    {formatPercent(payoff.discountRate)} off remaining · save{" "}
+                    Remaining {formatMoney(payoff.remainingBalance)} · save{" "}
                     {formatMoney(payoff.savings)}
                   </small>
                 </div>
@@ -2844,7 +2793,7 @@ export default function Home() {
               >
                 <b>{mode.label}</b>
                 <span>{formatMoney(mode.amount)}</span>
-                <small>{mode.note}</small>
+                <small>{mode.term} mo</small>
               </button>
             ))}
           </div>
